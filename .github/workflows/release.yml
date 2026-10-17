@@ -1,0 +1,83 @@
+# release — on a pushed tag vX.Y.Z (or vX.Y.Z-rc.N, published as a pre-release): check the plugins,
+# make sure the tag, VERSION and CHANGELOG agree, build my-mods-vX.Y.Z.zip with SHA256SUMS.txt, and
+# publish them as a GitHub Release whose notes are that version's CHANGELOG section.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate and test every plugin
+        env:
+          SKIP_PLUGIN_TESTS: ${{ vars.SKIP_PLUGIN_TESTS }}
+        run: bash scripts/check.sh
+
+      - name: Tag, VERSION and CHANGELOG agree
+        id: meta
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="$(tr -d '[:space:]' < VERSION)"
+          base="${tag%%-*}" # v1.4.0-rc.1 -> v1.4.0
+          [ "$base" = "v$version" ] || { echo "tag $tag does not match VERSION $version"; exit 1; }
+          awk -v h="## $base" 'index($0, h) == 1 { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "CHANGELOG.md has no '## $base' section"; exit 1; }
+          case "$tag" in *-*) echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT" ;; *) echo "prerelease=" >> "$GITHUB_OUTPUT" ;; esac
+
+      # Until the installers exist the zip ships without them and is installed by hand (README "Install").
+      - name: The installers are in place
+        run: |
+          for f in scripts/install.sh scripts/install.ps1; do
+            [ -s "$f" ] || echo "::warning::$f is missing: this release is installed by hand (README)"
+          done
+
+      - name: Build the zip and checksums
+        run: |
+          out="dist/my-mods"
+          mkdir -p "$out"
+          src=$(node -e 'for (const p of require("./.claude-plugin/marketplace.json").plugins) console.log(p.source)')
+          # the marketplace file and each plugin, without tests, the engine's per-machine types and guide files
+          tar -cf - --exclude='*/tests' --exclude='*/.claude-plugin/types' --exclude='*/node_modules' \
+            --exclude='*/CLAUDE.md' --exclude='*/CLAUDE.local.md' \
+            .claude-plugin $src | tar -xf - -C "$out"
+          cp VERSION README.md README.ko.md CHANGELOG.md "$out/"
+          # README links the migration guides, so they ship at the same relative path
+          mkdir -p "$out/docs" && cp -r docs/migration "$out/docs/"
+          for f in scripts/install.sh scripts/install.ps1; do
+            if [ -s "$f" ]; then cp "$f" "$out/"; fi
+          done
+          if [ -f "$out/install.sh" ]; then chmod +x "$out/install.sh"; fi
+          zip_name="my-mods-${GITHUB_REF_NAME}.zip"
+          (cd dist && zip -qr "$zip_name" my-mods && sha256sum "$zip_name" > SHA256SUMS.txt)
+          unzip -l "dist/$zip_name"
+          cat dist/SHA256SUMS.txt
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/my-mods-${GITHUB_REF_NAME}.zip" dist/SHA256SUMS.txt \
+            --title "my-mods ${GITHUB_REF_NAME}" \
+            --notes-file notes.md \
+            --verify-tag ${{ steps.meta.outputs.prerelease }}

@@ -1,0 +1,8 @@
+# written by the engine for the editor, per machine
+.claude-plugin/types/
+*/.claude-plugin/types/
+node_modules/
+dist/
+notes.md
+.DS_Store
+docs/map.md

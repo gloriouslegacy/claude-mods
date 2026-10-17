@@ -1,0 +1,35 @@
+{
+  "name": "agent-flow",
+  "version": "0.3.0",
+  "description": "A pane (/agent-flow) with the main agent and every subagent: status, model, tokens, tool calls, what each is doing now with slow/thinking/silent signs, [+] details, unlisted loops, main_Diff / sub_Diff; /agent-flow stats sums the logged runs by agent and model",
+  "author": {
+    "name": "kimjaewoo"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "slowSeconds": {
+      "type": "number",
+      "title": "Slow tool call (seconds)",
+      "description": "Mark a running tool call ⚠ slow past this (red past 3×); tools that wait by design (Agent, Monitor, ...) are never slow",
+      "default": 60
+    },
+    "slowShellSeconds": {
+      "type": "number",
+      "title": "Slow shell call (seconds)",
+      "description": "The same for Bash / PowerShell, whose builds and tests run long",
+      "default": 180
+    },
+    "silentSeconds": {
+      "type": "number",
+      "title": "Silent agent (seconds)",
+      "description": "Mark a working agent ⚠ silent when it has had no tool call and no model request under way for this long (red past 3×)",
+      "default": 120
+    },
+    "log": {
+      "type": "boolean",
+      "title": "Log subagent runs",
+      "description": "Keep one line per finished subagent run (type, model, tokens, time, calls, edits) across sessions for /agent-flow stats",
+      "default": true
+    }
+  }
+}

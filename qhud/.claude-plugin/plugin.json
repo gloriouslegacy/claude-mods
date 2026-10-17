@@ -1,0 +1,67 @@
+{
+  "name": "qhud",
+  "version": "0.17.0",
+  "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
+  "author": {
+    "name": "kimjaewoo"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "band: 2–3 coloured lines above the prompt; bottom: the same lines under the prompt; line: one status line under the prompt",
+      "default": "bottom",
+      "options": [
+        "band",
+        "bottom",
+        "line"
+      ]
+    },
+    "style": {
+      "type": "string",
+      "title": "Band style",
+      "description": "plain: coloured text; chip: each line on a shaded background; box: one rounded frame",
+      "default": "plain",
+      "options": [
+        "plain",
+        "chip",
+        "box"
+      ]
+    },
+    "model": {
+      "type": "boolean",
+      "title": "Show model",
+      "description": "Show the model, its effort and the fallback chain (Opus 5.5 · high · ⤷ Sonnet › Haiku)",
+      "default": true
+    },
+    "weather": {
+      "type": "boolean",
+      "title": "Show context fill",
+      "description": "Show the context window fill, CT 34%, after git",
+      "default": true
+    },
+    "ttl": {
+      "type": "string",
+      "title": "Prompt cache TTL",
+      "description": "How long the prompt cache lives after the last response (1h or 5m)",
+      "default": "1h",
+      "options": [
+        "1h",
+        "5m"
+      ]
+    },
+    "git": {
+      "type": "boolean",
+      "title": "Show git status",
+      "description": "Show branch, ahead/behind and changed files (runs git status, no tokens)",
+      "default": true
+    },
+    "plan": {
+      "type": "boolean",
+      "title": "Show per-model weekly limits",
+      "description": "Also show model-specific weekly windows such as 7d Fable, read from the account usage endpoint every 5 minutes (no tokens)",
+      "default": true
+    }
+  }
+}
