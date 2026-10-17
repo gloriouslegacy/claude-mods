@@ -3,7 +3,7 @@
 > 대상: 이 저장소를 이어받는 개발자
 > 범위: GitHub 비공개 저장소에서 릴리스를 만들고, 사용자가 받은 뒤 스크립트 하나로 Windows, Windows WSL, Linux, macOS에 설치하는 구조
 > 상태: 설계 문서(초안). 스크립트와 워크플로는 이 문서를 기준으로 작성하며, 아래 "검증 필요" 표시가 붙은 항목은 실제 환경에서 확인한 뒤 표시를 지운다.
-> 주의: 설치 스크립트가 생기기 전 릴리스는 README 의 수동 설치(marketplace add + plugin install)로 설치한다. 그 동안 release 워크플로는 스크립트가 없으면 경고만 내고, zip 에는 있으면 넣는다.
+> 주의: 설치 스크립트(`install.sh`·`install.ps1`)는 저장소에 있다. 아직 없는 것은 `bump-version.mjs` 뿐이다(계획). 스크립트가 없는 옛 릴리스는 README 의 수동 설치(marketplace add + plugin install)로 설치한다. release 워크플로는 스크립트가 없으면 경고만 내고, 있으면 zip 에 넣는다.
 > 작성: 2026-10-17
 
 ---
@@ -12,12 +12,14 @@
 
 Claude Code mod(함수 훅 플러그인) 4개를 하나의 marketplace(`my-mods`)로 묶어 배포한다.
 
-| 플러그인 | 폴더 | 현재 버전 | 하는 일 |
-|---|---|---|---|
-| qhud (이전 tcw) | `qhud/` | 0.17.0 | 프롬프트 위·아래 상태 줄: 모델·effort·fallback, git, 컨텍스트 사용률, 5시간/주간/모델별 주간 한도, 캐시 만료 경고 |
-| change-tutor | `change-tutor/` | 0.4.0 | 메인 에이전트가 고친 파일마다 학습 노트(쉬운 설명·퀴즈). 기본 꺼짐 |
-| pinboard | `pinboard/` | 0.3.0 | `/pin` 고정 메모, 작업 중인 Claude에게 즉시 전달, `!!`로 작업 중단 후 전달 |
-| agent-flow | `agent-flow/` | 0.3.0 | `/agent-flow` 패널: 메인·서브에이전트 상태, 모델, 토큰, 멈춤 경고, diff, 실행 통계 |
+| 플러그인 | 폴더 | 하는 일 |
+|---|---|---|
+| qhud (이전 tcw) | `qhud/` | 프롬프트 위·아래 상태 줄: 모델·effort·fallback, git, 컨텍스트 사용률, 5시간/주간/모델별 주간 한도, 캐시 만료 경고 |
+| change-tutor | `change-tutor/` | 메인 에이전트가 고친 파일마다 학습 노트(쉬운 설명·퀴즈). 기본 꺼짐 |
+| pinboard | `pinboard/` | `/pin` 고정 메모, 작업 중인 Claude에게 즉시 전달, `!!`로 작업 중단 후 전달 |
+| agent-flow | `agent-flow/` | `/agent-flow` 패널: 메인·서브에이전트 상태, 모델, 토큰, 멈춤 경고, diff, 실행 통계 |
+
+버전은 각 `plugin.json`(=`marketplace.json`)이 정한다.
 
 요구 사항: Claude Code 2.1.287 이상, 함수 훅(hooks module)을 쓸 수 있는 환경. 함수 훅은 아직 초기 기능이라 버전에 따라 API가 바뀔 수 있다(9장 참고).
 
@@ -59,9 +61,9 @@ claude-mods/                          ← 저장소 루트
 ├── agent-flow/                       ← 같은 구조
 ├── scripts/
 │   ├── CLAUDE.md                     ← [있음] Claude Code 작업 안내(zip 제외)
-│   ├── check.sh                      ← [있음] 이름·버전 일치 + 복사본 3쌍 본문 비교(목록은 docs/structure.md) + validate/test
-│   ├── install.sh                    ← [계획] Linux / macOS / WSL 설치·업데이트·제거
-│   ├── install.ps1                   ← [계획] Windows(PowerShell 5.1 / 7) 설치·업데이트·제거
+│   ├── check.sh                      ← [있음] 이름·버전 일치 + 복사본 4쌍 본문 비교(목록은 docs/structure.md) + validate/test
+│   ├── install.sh                    ← [있음] Linux / macOS / WSL 설치·업데이트·제거
+│   ├── install.ps1                   ← [있음] Windows(PowerShell 5.1 / 7) 설치·업데이트·제거
 │   └── bump-version.mjs              ← [계획] plugin.json과 marketplace.json의 버전을 함께 올림
 ├── .github/
 │   ├── workflows/
@@ -94,8 +96,8 @@ my-mods-v1.4.0.zip
     ├── change-tutor/
     ├── pinboard/
     ├── agent-flow/
-    ├── install.sh             [계획] 스크립트가 생기면 넣는다(없으면 경고만)
-    ├── install.ps1            [계획] 위와 같음
+    ├── install.sh             [있음] release.yml 이 scripts/ 에서 복사(없으면 경고만)
+    ├── install.ps1            [있음] 위와 같음
     ├── docs/migration/        README 가 링크하는 이전 안내(같은 상대 경로)
     ├── VERSION
     ├── README.md
@@ -112,7 +114,7 @@ my-mods-v1.4.0.zip
 | Windows | `%LOCALAPPDATA%\claude-mods\` | OneDrive 동기화 대상인 문서 폴더를 피한다 |
 | macOS / Linux / WSL | `~/.local/share/claude-mods/` | `XDG_DATA_HOME`이 있으면 그 아래 |
 
-설치 폴더 안에는 `current/`(사용 중인 버전)와 `previous/`(바로 전 버전, 되돌리기용)만 둔다. marketplace는 항상 `current/`를 가리킨다. 플러그인은 이 폴더에서 바로 읽히므로 폴더를 옮기거나 지우면 동작하지 않는다. **검증 필요**: Claude Code 가 로컬 marketplace 플러그인을 캐시로 복사하는지(복사하면 업데이트 때 `claude plugin update`가 필요하다).
+설치 폴더 안에는 `current/`(사용 중인 버전)와 `previous/`(바로 전 버전, 되돌리기용)만 둔다. marketplace는 항상 `current/`를 가리키고, 플러그인은 설치할 때 `~/.claude/plugins/cache/...` 로 복사된다(확인됨). 그래서 새 버전을 `current/`에 놓은 뒤에도 이미 설치된 플러그인은 `claude plugin update`를 해야 바뀐다. marketplace 가 이 폴더를 가리키므로 폴더를 옮기거나 지우면 안 된다.
 
 ---
 
@@ -156,7 +158,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 
 | 파일 | 언제 | 하는 일 |
 |---|---|---|
-| `.github/workflows/ci.yml` | PR, `main` push, 매주 월요일 09:17 KST, 수동 | `check` 잡: Claude Code 최신판 설치 → `scripts/check.sh`(이름·버전 일치 + 복사본 3쌍 본문 비교(목록은 `docs/structure.md`) + 플러그인 4개 validate·test) → `VERSION`과 `CHANGELOG.md` 단락 확인. `scripts` 잡: 설치 스크립트가 생기면 Ubuntu·macOS·Windows에서 정적 검사와 `--dry-run`(PowerShell 7과 5.1 둘 다). `report` 잡: 주간 실행이 실패하면 이슈를 하나 열고, 이미 열려 있으면 댓글을 단다 |
+| `.github/workflows/ci.yml` | PR, `main` push, 매주 월요일 09:17 KST, 수동 | `check` 잡: Claude Code 최신판 설치 → `scripts/check.sh`(이름·버전 일치 + 복사본 4쌍 본문 비교(목록은 `docs/structure.md`) + 플러그인 4개 validate·test) → `VERSION`과 `CHANGELOG.md` 단락 확인. `scripts` 잡: Ubuntu·macOS·Windows에서 정적 검사와 `--dry-run`(PowerShell 7과 5.1 둘 다). `report` 잡: 주간 실행이 실패하면 이슈를 하나 열고, 이미 열려 있으면 댓글을 단다 |
 | `.github/workflows/release.yml` | `v*` 태그 push | `check.sh` → 태그·`VERSION`·`CHANGELOG` 일치 확인 → 설치 스크립트 존재 확인(없으면 경고만) → zip 생성(제외 목록은 3장, 설치 스크립트는 있으면 넣고 `docs/migration/`도 넣는다) → `SHA256SUMS.txt` → Release 게시(노트는 해당 CHANGELOG 단락, `-rc.N` 같은 태그는 사전 릴리스) |
 | `.github/dependabot.yml` | 매월 | 워크플로가 쓰는 액션 버전 갱신 PR |
 | `.github/pull_request_template.md` | PR 작성 시 | 버전·CHANGELOG·README 두 벌 체크리스트 |
@@ -199,9 +201,9 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 | 2. 받기 | 기본은 최신 Release. `--version v1.4.0`으로 특정 버전. 4.5의 순서(gh → 토큰 → `--zip`). 스크립트 옆에 번들(`.claude-plugin/marketplace.json`)이 있으면(압축 푼 zip 안에서 실행) 그 번들을 설치하고 받기·3단계를 생략한다 |
 | 3. 검증 | `SHA256SUMS.txt`와 zip 해시 비교. 다르면 중단. `--zip`은 같은 폴더의 `SHA256SUMS.txt`(또는 `--sums <파일>`)가 없으면 중단 |
 | 4. 풀기 | 임시 폴더에 풀고 구조(`my-mods/.claude-plugin/marketplace.json`) 확인 |
-| 5. 교체 | `current/` → `previous/`로 옮기고 새 버전을 `current/`로. 실패하면 `previous/`를 되돌린다 |
-| 6. 등록 | marketplace `my-mods`가 없으면 `claude plugin marketplace add <설치폴더>/current`. 있으면 등록 경로를 비교해 `<설치폴더>/current`와 다르면(README 방식 수동 등록 사용자) `remove` 후 `<설치폴더>/current`로 다시 add, 같으면 `claude plugin marketplace update my-mods` |
-| 7. 설치 | `tcw@my-mods`가 있으면 제거한 뒤 qhud 를 설치한다(`docs/migration/RENAME_TCW_TO_QHUD.md`가 약속한 내용). 선택한 플러그인마다 `claude plugin install <이름>@my-mods --scope user`(이미 있으면 건너뜀. **검증 필요**: 로컬 marketplace 플러그인이 캐시로 복사되면 건너뛰지 말고 `claude plugin update`가 필요하다) |
+| 5. 교체 | `current/` → `previous/`로 옮기고 새 버전을 `current/`로. 실패하면 `previous/`를 되돌린다. `current/`·`previous/` 는 표식(`.claude-plugin/marketplace.json`)이 있을 때만 바꾸거나 지우고, 없으면 건드리지 않고 중단한다(`--dir` 을 잘못 줘도 사용자 파일을 잃지 않게). 삭제는 설치 폴더 바로 아래 항목만 한다 |
+| 6. 등록 | marketplace `my-mods`가 없으면 `claude plugin marketplace add <설치폴더>/current`. 있으면 등록 경로를 비교해 `<설치폴더>/current`와 다르면(README 방식 수동 등록 사용자) remove 없이 같은 이름으로 `<설치폴더>/current`를 add(경로만 바뀌고 설치·설정값 유지. remove 는 그 marketplace 의 플러그인과 설정값을 함께 지우므로 쓰지 않는다), 같으면 `claude plugin marketplace update my-mods` |
+| 7. 설치 | `tcw@my-mods`가 있으면 제거한 뒤 qhud 를 설치한다(`docs/migration/RENAME_TCW_TO_QHUD.md`가 약속한 내용). 선택한 플러그인마다, 이미 설치돼 있으면 `claude plugin update <이름>@my-mods --scope user`, 없으면 `claude plugin install <이름>@my-mods --scope user`(플러그인은 캐시로 복사되므로 설치된 것은 update 가 필요하다). scope 는 user 만 다루고 project·local 설치는 건드리지 않는다. 플러그인을 제거할 때(tcw 이전, `--uninstall`)는 항상 `--keep-data` 로 데이터(`~/.claude/plugins/data/<id>/`)를 보존한다 |
 | 8. 안내 | 실행 중인 Claude Code 세션에서는 `/reload-plugins`, 또는 새 세션을 열라고 출력. 끝에 한 줄로 "현재 vX, 최신 vY"를 출력 |
 
 ### 6.2 옵션
@@ -213,9 +215,16 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 | `--zip ./my-mods-v1.4.0.zip` | `-Zip .\my-mods-v1.4.0.zip` | 이미 받은 zip으로 설치(같은 폴더의 `SHA256SUMS.txt` 필요) |
 | `--sums <파일>` | `-Sums <파일>` | `SHA256SUMS.txt`가 zip 과 다른 위치일 때 |
 | `--dir <경로>` | `-Dir <경로>` | 설치 폴더 변경 |
-| `--rollback` | `-Rollback` | `previous/`로 되돌리기 |
-| `--uninstall` | `-Uninstall` | 4개 플러그인과 marketplace 제거, 설치 폴더 삭제 |
+| `--rollback` | `-Rollback` | `current/` 와 `previous/` 를 맞바꾸고, 이미 설치된 플러그인만 `claude plugin update`(설치 안 된 것은 설치하지 않음. `--plugins` 를 주면 그 목록은 설치도 한다) |
+| `--uninstall` | `-Uninstall` | 설치된 플러그인(옛 `tcw` 포함)을 `--keep-data` 로 제거하고 marketplace 제거, 설치 폴더(`current/`·`previous/` 등)와 비면 폴더 자체 삭제. 사용자 데이터는 남긴다 |
 | `--dry-run` | `-DryRun` | 할 일만 출력하고 아무것도 바꾸지 않음(CI용) |
+
+옵션 규칙(두 스크립트 공통, 어기면 중단):
+- `--rollback` 과 `--uninstall` 은 함께 못 쓴다. 둘 다 `--zip`·`--version`·`--sums` 와 함께 못 쓴다(설치에만 적용). `--uninstall` 은 `--plugins` 와 함께 못 쓴다(전부 제거. 하나만 지우려면 `claude plugin uninstall <이름>@my-mods`). `--sums` 는 `--zip` 없이 못 쓴다.
+- `--version` 은 `v1.4.0` 또는 `1.4.0`(`-rc.1` 같은 접미 허용) 형식만 받고, `v` 가 없으면 붙인다.
+- `--dir` 은 절대 경로로 바꾸며 홈 폴더와 루트(Windows 는 드라이브 루트)를 거부한다(sh 은 심볼릭 링크로 그곳에 닿는 경로와 `..` 이 든 경로도 거부). 표식이 없는 `current/`·`previous/` 는 건드리지 않는다.
+- `--zip`/`--version` 을 주면 스크립트 옆 번들보다 우선한다(다운로드·지정 zip 을 설치). 스크립트 옆 번들을 설치할 때는 체크섬 단계를 생략하고 그렇다고 출력한다.
+- 롤백 후 플러그인은 `plugin update` 만 한다. `plugin update` 가 낮은 버전으로도 내려가는 것은 확인됐다(2026-10-17, 10장).
 
 ### 6.3 OS별 주의점
 
@@ -301,9 +310,19 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 | 학습 노트(최근 100건) | change-tutor | 플러그인 저장소(`$.store`, Claude 설정 폴더 아래) | 유지 |
 | 고정 메모(폴더별 50개) | pinboard | 같음 | 유지 |
 | 서브에이전트 실행 기록(최근 3000건) | agent-flow | 같음 | 유지 |
-| `/config` 설정값 | 4개 전부 | Claude 설정(settings) | 유지 |
+| `/config` 설정값 | 4개 전부 | `~/.claude/settings.json` 의 `pluginConfigs["<id>"].options` | 유지(`--uninstall`·플러그인 uninstall 에서는 지워짐) |
 
-이 데이터는 플러그인 폴더가 아니라 Claude Code 설정 폴더 쪽에 있어서 `current/` 교체로는 지워지지 않는다. 실제 경로와, 플러그인 제거 후 재설치 시에도 남는지는 **검증 필요**. `--uninstall`은 기본적으로 이 데이터를 남기고, 지우는 옵션은 따로 두지 않는다(실수 방지).
+저장 위치(확인됨, 2026-10-17, Claude Code 2.1.302, `CLAUDE_CONFIG_DIR` 격리 실험):
+- 플러그인 본체: `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` 로 복사된다.
+- 플러그인 데이터(노트·메모·실행 기록): `~/.claude/plugins/data/<id>/`.
+- marketplace 경로: `settings.json` 의 `extraKnownMarketplaces["my-mods"].source.path`.
+
+동작(확인됨):
+- 데이터는 `current/` 교체로 지워지지 않는다.
+- `/config` 설정값은 업데이트(`marketplace update` + `plugin update`)와 경로 이동(같은 이름으로 `marketplace add <새경로>`)에서 유지된다. 업데이트는 같은 버전에서만 확인했고 버전 상승 시는 미검증이다(10장).
+- `plugin uninstall --keep-data` 는 데이터 폴더만 남기고 설정값은 지운다. `marketplace remove` 는 그 marketplace 의 플러그인을 함께 uninstall 하고 설정값을 지운다(데이터는 가능한 경우에 한해 지움).
+- 그래서 `--uninstall`(`--keep-data` 로 제거) 뒤 다시 설치하면 데이터는 남아 있지만 `/config` 에서 설정을 다시 해야 한다. 미리 `claude plugin configure <id> --json` 으로 값을 읽어 적어 두면 되고, 같은 명령에 `--values-stdin` 으로 값을 넣을 수도 있다.
+- 데이터를 지우는 옵션은 따로 두지 않는다(실수 방지).
 
 ---
 
@@ -366,6 +385,11 @@ blast-radius와 replay-theater는 이 묶음에서 빠졌다. 예전에 설치�
 - [ ] 로컬에서 `bash scripts/check.sh` 통과
 - [ ] 사전 릴리스 태그(`v<VERSION>-rc.N`, 예: `v1.1.0-rc.1`)로 release 워크플로를 한 번 돌려 zip·체크섬 게시 확인(태그는 지우지 않는다, 4.3)
 - [ ] 9.7 매트릭스 중 최소 Windows와 WSL에서 설치 확인
-- [ ] "검증 필요" 표시 항목(4.4 CI 로그인, 8장 데이터 위치) 확인 후 이 문서 갱신
-- [ ] Claude Code 가 로컬 marketplace 플러그인을 캐시로 복사하는지 확인(3장, 6.1 7단계). 복사하면 업데이트 절차에 `claude plugin update`를 넣는다
+- [ ] "검증 필요" 표시 항목(4.4 CI 로그인) 확인 후 이 문서 갱신
+- [x] 확인됨(2026-10-17, 2.1.302): 플러그인이 `~/.claude/plugins/cache/...` 로 복사됨(3장, 8장)
+- [x] 확인됨(2026-10-17): `--rollback` 때 `claude plugin update` 가 낮은 버전으로 내려감(6.2)
+- [x] 확인됨(2026-10-17): `marketplace remove` 는 플러그인을 함께 uninstall 하고 설정값을 지움, 데이터는 조건부(6.1 6단계, 8장)
+- [ ] 버전이 오르는 `marketplace update` + `plugin update` 뒤에도 `/config` 설정값이 유지되는지 확인(같은 버전에서만 확인함)
+- [ ] 5.1 의 토큰 다운로드에서 GitHub 가 저장소 밖 주소로 리다이렉트할 때 `Authorization` 헤더가 넘어가지 않는지 확인(스크립트는 리다이렉트를 직접 풀고 토큰 없이 받는다)
+- [ ] Linux/macOS 에서 위 저장 위치(8장) 경로가 Windows 와 같은지 비교
 - [ ] Claude Code 최신 버전에서 4개 플러그인 로드 확인

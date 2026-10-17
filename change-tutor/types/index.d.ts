@@ -20,7 +20,7 @@ export type Note = {
   /** What Claude said right before making the change. */
   why: string
   hunks: Hunk[]
-  /** Diff lines kept in hunks (may be fewer than the change had). */
+  /** Diff lines the change had (more than hunks keep when it was long). */
   totalLines: number
   explain: string | null
   quiz: Quiz | null

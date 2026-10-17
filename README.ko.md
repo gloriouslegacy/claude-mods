@@ -109,13 +109,44 @@ last: implementer · Edit src/parser.ts
 | `▸ unlisted loops (N)` | 엔진의 에이전트 목록에 없는 루프(워크플로 에이전트, 압축 같은 엔진 내부 작업). 접혀 있고 클릭하면 펼침 |
 | `last:` | 마지막으로 일어난 일 |
 
-이번 세션 동안만 기록하고, 엔진이 가진 정보만 읽어서 토큰을 쓰지 않습니다. `/agent-flow text`는 같은 트리를 텍스트로 출력하고, 패널을 그릴 수 없는 환경(`-p` 실행, 에디터 확장)에서는 `/agent-flow`가 자동으로 텍스트로 출력합니다.
+패널은 이번 세션의 에이전트만 보여 주고, `/agent-flow stats` 기록은 세션을 넘어 유지됩니다. 엔진이 가진 정보만 읽어서 토큰을 쓰지 않습니다. `/agent-flow text`는 같은 트리를 텍스트로 출력하고, 패널을 그릴 수 없는 환경(`-p` 실행, 에디터 확장)에서는 `/agent-flow`가 자동으로 텍스트로 출력합니다.
 
 ---
 
 ## 2. 설치
 
-압축을 계속 둘 폴더(예: `C:\Users\<이름>\claude-mods`, `~/claude-mods`)에 풀고, 그 폴더에서 실행합니다.
+### 설치 스크립트 (권장)
+
+릴리스를 받아 압축을 풀고, 그 안의 스크립트를 실행합니다. 비공개 저장소라서 `gh auth login` 또는 `GITHUB_TOKEN`(이 저장소 하나, Contents: Read-only 권한의 fine-grained 토큰)이 필요합니다.
+
+```bash
+# macOS / Linux / WSL
+gh release download --repo gloriouslegacy/claude-mods --pattern 'my-mods-*.zip' --pattern SHA256SUMS.txt
+unzip my-mods-*.zip && sh my-mods/install.sh
+```
+
+```powershell
+# Windows
+gh release download --repo gloriouslegacy/claude-mods --pattern 'my-mods-*.zip' --pattern SHA256SUMS.txt
+Expand-Archive my-mods-*.zip -DestinationPath .
+powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
+```
+
+압축을 푼 릴리스 안에서 실행하면 그 번들을 그대로 설치합니다(다운로드·체크섬 단계 없음). 스크립트만 따로 실행하면(`gh` 로그인 또는 `GITHUB_TOKEN` 필요) 최신 릴리스를 받아 `SHA256SUMS.txt`와 대조한 뒤 설치합니다. 플러그인 4개를 user 범위로 설치하고, 파일은 `%LOCALAPPDATA%\claude-mods`(Windows) 또는 `~/.local/share/claude-mods`(그 외, `XDG_DATA_HOME`이 있으면 따름)에 두며, 그 폴더로 `my-mods` marketplace를 등록합니다. WSL은 Windows와 `~/.claude`가 따로이므로 쓰는 환경마다 각각 설치해야 합니다.
+
+| 옵션 (bash / PowerShell) | 동작 |
+|---|---|
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
+| `--version v1.4.0` / `-Version v1.4.0` | 특정 버전 설치(기본: 최신) |
+| `--zip <파일>` `--sums <파일>` / `-Zip <파일>` `-Sums <파일>` | 이미 받은 zip으로 설치. `SHA256SUMS.txt`가 zip 옆에 있어야 하며, 다른 위치면 `--sums` 지정 |
+| `--dir <경로>` / `-Dir <경로>` | 설치 폴더 변경(홈 폴더·드라이브 루트는 거부) |
+| `--rollback` / `-Rollback` | 바로 전 설치로 되돌리기 |
+| `--uninstall` / `-Uninstall` | 플러그인, marketplace, 설치 폴더 제거. 노트·고정 메모·실행 기록(데이터)은 남고 `/config` 설정값은 지워짐 |
+| `--dry-run` / `-DryRun` | 할 일만 출력하고 아무것도 바꾸지 않음 |
+
+### 수동 설치
+
+릴리스 압축을 계속 둘 폴더(예: `C:\Users\<이름>`, `~`)에 풉니다. 맨 위에 `my-mods/` 폴더가 생기며, 아래 명령은 그 `my-mods/` 폴더 안에서 실행합니다.
 
 ```bash
 claude plugin marketplace add ./
@@ -126,7 +157,7 @@ claude plugin install agent-flow@my-mods --scope user
 ```
 
 - `--scope user`로 설치하면 모든 프로젝트, 터미널, 데스크톱 앱 Code 탭에서 로드됩니다. 필요한 것만 설치해도 됩니다.
-- 설치할 때 "option not yet set" 안내가 나와도 기본값으로 동작합니다. 처음부터 지정하려면 `--config ttl=1h` / `--config model=haiku`를 붙이세요.
+- 설치할 때 "option not yet set" 안내가 나와도 기본값으로 동작합니다. 처음부터 지정하려면 qhud 설치에 `--config ttl=1h`(qhud의 키)를, change-tutor 설치에 `--config model=haiku`(change-tutor의 키)를 붙이세요. 예: `claude plugin install change-tutor@my-mods --scope user --config model=haiku`
 - 플러그인은 이 폴더에서 바로 읽힙니다. **폴더를 옮기거나 지우지 마세요.** 파일을 고친 뒤에는 `/reload-plugins`를 실행하면 반영됩니다.
 
 다른 로드 방법:
@@ -138,14 +169,14 @@ claude --plugin-dir ./qhud --plugin-dir ./change-tutor --plugin-dir ./pinboard -
 
 ```json
 // ~/.claude/settings.json — 항상 로드(절대 경로, Windows는 ";", macOS·Linux는 ":"로 구분)
-{ "env": { "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\<이름>\\claude-mods\\qhud;C:\\Users\\<이름>\\claude-mods\\pinboard" } }
+{ "env": { "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\<이름>\\my-mods\\qhud;C:\\Users\\<이름>\\my-mods\\pinboard" } }
 ```
 
-업데이트: 새 버전을 같은 폴더에 덮어 풀고 `claude plugin marketplace update my-mods`와 `/reload-plugins`를 실행합니다(새 세션을 열어도 됩니다). `/config`에서 바꾼 설정은 유지됩니다.
+업데이트: 설치 스크립트를 같은 명령으로 다시 실행하고 `/reload-plugins`를 실행합니다(새 세션을 열어도 됩니다). `/config`에서 바꾼 설정은 유지됩니다. (수동 설치: 새 버전을 같은 폴더에 덮어 풀고 `claude plugin marketplace update my-mods`와 `/reload-plugins`를 실행합니다.)
 
 **tcw**를 쓰던 버전에서 올리는 경우: 이름이 **qhud**로 바뀌었습니다. [docs/migration/RENAME_TCW_TO_QHUD.md](docs/migration/RENAME_TCW_TO_QHUD.md)를 따라 옮기세요(설정은 `qhud` 항목에 다시 넣어야 합니다).
 
-제거: `claude plugin uninstall <이름>@my-mods`
+제거: 스크립트를 `--uninstall`(Windows는 `-Uninstall`)로 실행합니다. (수동 설치: `claude plugin uninstall <이름>@my-mods`)
 
 blast-radius와 replay-theater는 이 묶음에서 빠졌습니다. 예전에 설치했다면 `claude plugin uninstall blast-radius@my-mods`, `claude plugin uninstall replay-theater@my-mods`로 지우세요.
 
@@ -166,6 +197,8 @@ blast-radius와 replay-theater는 이 묶음에서 빠졌습니다. 예전에 �
 | `qhud.plan` | `true`, `false` — 모델별 주간 한도 표시 여부(5분마다 조회, 토큰 없음) | `true` |
 | `qhud.git` | `true`, `false` — git 상태 표시 여부(갱신마다 `git status` 실행, 토큰 없음) | `true` |
 | `qhud.ttl` | `1h`, `5m` — 캐시 만료 알림의 기준 시간 | `1h` |
+
+`/qhud-usage`는 계정 사용량 엔드포인트를 바로 읽어 응답 내용을 출력합니다. 모델별 한도가 이상하거나 보이지 않을 때 쓰세요.
 
 ### change-tutor
 

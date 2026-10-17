@@ -13,9 +13,11 @@
 ## 결정 (모두 "지금 도입" = 현재 상태)
 1. **모듈 경계**: 플러그인 4개(`agent-flow/`·`change-tutor/`·`pinboard/`·`qhud/`)는 서로 독립이다. 서로 import 하지 않는다. `scripts/` 는 저장소 도구이며 플러그인 코드를 import 하지 않고 JSON 만 읽는다.
 2. **의도된 복사본**(공유 코드 대신 복사):
-   - `agent-flow/hooks/diff.ts` = `change-tutor/hooks/diff.ts` (1행 머리 주석만 다름). 둘이 쓰는 `Hunk` 타입도 각 `types/index.d.ts` 에 같은 정의로 있다.
-   - `agent-flow/hooks/model.ts` 의 `modelName` = `qhud/hooks/model.ts` 의 `modelName`(본문 동일). qhud 쪽에는 `chainName`·`settingsEffort` 가 더 있다.
-   - 한쪽을 고치면 다른 쪽도 같은 커밋에서 맞춘다. 자동 검사는 없다.
+   - `agent-flow/hooks/diff.ts` = `change-tutor/hooks/diff.ts` (1행 머리 주석만 다름, 1행 제외 전체 비교).
+   - `modelName` 과 그것이 쓰는 `FAMILIES`·`title`(`model.ts` 2행~`modelName` 끝): `agent-flow/hooks/model.ts` = `qhud/hooks/model.ts`. qhud 쪽에는 `chainName`·`settingsEffort` 가 더 있다.
+   - `Hunk` 타입 한 줄: agent-flow ↔ change-tutor 각 `types/index.d.ts`.
+   - `shortPath`: agent-flow `flow.ts` ↔ change-tutor `tutor.ts`.
+   - 한쪽을 고치면 다른 쪽도 같은 커밋에서 맞춘다. `scripts/check.sh` 의 `copies` 단계가 위 4쌍을 항상 검사한다.
 3. **I/O 경계**: 플러그인마다 `hooks/register.tsx` 하나만 `'claude-code'` 를 import 하고 `$`(EngineInterface)를 만진다. 시계(`$.clock`)·저장(`$.store`)·네트워크(`$.http`)·프로세스(`$.process`)·모델(`$.model`)·화면(`$.ui`) 접근은 전부 여기다. 나머지 `hooks/*.ts` 는 순수 함수(파싱·계산·문구)이며 현재 시각도 인자로 받는다.
 4. **의존 방향**: `register.tsx` → 순수 모듈 → `../types`. 순수 모듈끼리는 단방향(예: qhud `view`→`weather`, `plan`→`weather`(타입); agent-flow `stats`→`flow`→`model`). 순수 모듈은 `register.tsx` 를 import 하지 않는다.
 5. **도메인 타입**: 플러그인마다 `types/index.d.ts` 한 장(손으로 씀). 앞부분은 도메인 타입, 끝은 `declare module 'claude-code' { … }` 로 호스트 API ambient 선언. 호스트 API 를 새로 쓰면 여기에 선언을 더한다. `.claude-plugin/types/` 는 엔진 생성물, 커밋 안 함.
@@ -38,17 +40,17 @@
   - 단점: 플러그인 폴더가 자기완결이 아니게 된다 — marketplace `source` 가 플러그인 폴더라 설치 위치에서 `shared/` 가 보이는지 호스트 동작에 달렸다(미검증). `claude plugin validate ./<mod>` 단독 검증도 깨질 수 있다. 플러그인별 독립 버전과 공유 코드 버전이 엇갈린다.
 - **B. 공유 폴더를 원본으로 두고 스크립트로 각 플러그인에 복사(생성 파일)**
   - 장점: 자기완결 유지 + 원본 하나. `check.sh` 에 "복사본 = 원본" 검사를 붙일 수 있다.
-  - 단점: 생성 단계가 하나 늘고, 생성물을 직접 고치는 실수를 막을 장치가 또 필요하다. 지금 복사본 2쌍·약 100줄에는 과하다.
+  - 단점: 생성 단계가 하나 늘고, 생성물을 직접 고치는 실수를 막을 장치가 또 필요하다. 복사본 4쌍·약 100줄은 `check.sh` 의 `copies` 검사로 충분해 과하다.
 - **C. 호스트 API 어댑터 인터페이스(`$` 래퍼)를 플러그인마다 둔다**
   - 장점: `register.tsx` 도 가짜 구현으로 테스트 가능.
   - 단점: 구현체가 호스트 하나뿐이고 `claude-code/testing` 이 `mock` 을 준다. 지금은 간접 계층만 늘어난다.
 
 ## 결과
 - 영향 모듈: 4개 플러그인 전부, `scripts/check.sh`.
-- 현재 자동 검사: `check.sh`(이름·버전 일치 + `claude plugin validate`/`test`), CI `ci.yml`·`release.yml`. 복사본 동일성·import 방향 검사는 없다.
+- 현재 자동 검사: `check.sh`(이름·버전 일치 + `claude plugin validate`/`test`), `copies` 단계(복사본 4쌍 동일성), CI `ci.yml`·`release.yml`. import 방향 검사는 없다.
 - 로그: 로그 라이브러리 없음. 사용자에게는 `$.ui.toast`·`$.ui.status`, 실패는 대부분 조용히 무시(예: git·엔드포인트 실패 시 그 항목만 숨김).
 - 줄 수 상한·모듈 안내 파일 전체 적용 여부: 저장소에 정해진 값 없음 → 사용자 결정 대기.
 
 ## 변경 제안 (결정 아님)
-- 도입 조건: 복사본이 3쌍 이상이 되거나 동기화 누락이 1회라도 발생하면 → 대안 B 또는 `check.sh` 에 복사본 본문 비교(1행 제외) 검사 추가.
+- 도입됨(2026-10-17): `check.sh` 의 `copies` 단계가 복사본 4쌍을 검사한다. 대안 B 는 동기화 누락이 이 검사를 통과해 발생하면 다시 검토.
 - 도입 조건: `register.tsx` 에서 호스트 없이 재현 못 하는 버그가 반복되면 → 대안 C 검토.

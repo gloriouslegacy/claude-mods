@@ -18,4 +18,4 @@
 
 - 플러그인 4개는 서로 의존하지 않는다. 각 플러그인 안: `hooks/register.tsx` → `hooks/*.ts`(순수) → `types/index.d.ts`. `claude-code` 는 `register.tsx` 만 import.
 - `scripts/`·CI → `marketplace.json`·`plugin.json`(읽기만). 플러그인 → `scripts/` 의존 없음.
-- 의도된 복사본(import 아님, 손으로 동기화): `diff.ts`(+`Hunk` 타입) agent-flow ↔ change-tutor, `modelName` agent-flow `model.ts` ↔ qhud `model.ts`.
+- 의도된 복사본(import 아님, 손으로 동기화): 4쌍 — `diff.ts`(1행 제외 전체) agent-flow ↔ change-tutor, `modelName`+`FAMILIES`·`title`(`model.ts` 2행~`modelName` 끝) agent-flow ↔ qhud, `Hunk` 타입 한 줄 agent-flow ↔ change-tutor, `shortPath` agent-flow `flow.ts` ↔ change-tutor `tutor.ts`. `scripts/check.sh` 의 `copies` 단계가 항상 검사한다.

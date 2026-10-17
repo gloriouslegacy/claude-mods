@@ -17,7 +17,7 @@
 규칙:
 - `/api/oauth/usage` 는 비공개 엔드포인트. 응답 형식이 바뀌면 `/qhud-usage` 로 실제 응답을 보고 `plan.ts` 만 고친다. 실패하면 모델별 주간 한도 항목만 숨기고 나머지는 그대로 보인다.
 - 엔드포인트는 `PLAN_EVERY_MS`(5분)보다 자주 부르지 않는다. `git status` 는 3초 제한, 실패 시 git 조각만 생략.
-- `modelName` 은 `agent-flow/hooks/model.ts` 와 본문이 같은 복사본. 고치면 그쪽도 맞춘다.
+- 의도된 복사본(`scripts/check.sh` 가 검사): `hooks/model.ts` 2행~`modelName` 끝(`FAMILIES`·`title` 포함) ↔ `agent-flow/hooks/model.ts`. 고치면 그쪽도 맞춘다. `plan.ts` 의 `FAMILIES` 는 별개다.
 - `/tcw-usage` 와 `TcwView` 는 tcw → qhud 이름 변경의 잔재. `/tcw-usage` 는 my-mods v1.2.0 에서 제거 예정(코드 안내 문구 기준).
 - `$.store` 는 쓰지 않는다. 세션 상태는 atom `history`·`clock`·`run`·`view`.
 ADR: docs/design/baseline.md

@@ -24,15 +24,17 @@ if ! node -e '
   const fs = require("fs")
   const read = f => fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n").split("\n")
   const tail = f => read(f).slice(1).join("\n") // all but the first-line header comment
-  const fn = name => f => { // from "export const <name>" to the first "}" at column 0
+  // from "export const <name>" (or line 2 with fromTop, to take the helpers above it) to the first "}" at column 0 after it
+  const fn = (name, fromTop = false) => f => {
     const lines = read(f), i = lines.findIndex(l => l.startsWith(`export const ${name} `))
     const j = i < 0 ? -1 : lines.findIndex((l, k) => k > i && l === "}")
-    return i < 0 || j < 0 ? null : lines.slice(i, j + 1).join("\n")
+    return i < 0 || j < 0 ? null : lines.slice(fromTop ? 1 : i, j + 1).join("\n")
   }
   const line = prefix => f => read(f).find(l => l.startsWith(prefix)) ?? null
   const pairs = [
     ["agent-flow/hooks/diff.ts", "change-tutor/hooks/diff.ts", tail, "body after line 1"],
-    ["agent-flow/hooks/model.ts", "qhud/hooks/model.ts", fn("modelName"), "modelName"],
+    ["agent-flow/hooks/model.ts", "qhud/hooks/model.ts", fn("modelName", true), "lines 2 to end of modelName"],
+    ["agent-flow/hooks/flow.ts", "change-tutor/hooks/tutor.ts", fn("shortPath"), "shortPath"],
     ["agent-flow/types/index.d.ts", "change-tutor/types/index.d.ts", line("export type Hunk ="), "type Hunk"],
   ]
   let bad = 0

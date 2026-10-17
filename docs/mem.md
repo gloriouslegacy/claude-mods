@@ -1,12 +1,13 @@
-# 세션 메모 (갱신 2026-10-17 · 커밋 f149815 기준)
+# 세션 메모 (갱신 2026-10-17 · 커밋 fda9acb 기준, 설치 스크립트 커밋 직전)
 ## 끝낸 것 (최근)
-- V5 적용: 루트·모듈 5개 CLAUDE.md, docs/design/baseline.md, docs/structure.md, docs 하위 폴더 이행
-- check.sh 복사본 3쌍 검사 추가, release.yml(설치기 없으면 경고, docs/migration 포함)
-- docs/release/RELEASE.md 검토 18건 반영(사실 수정 + 사용자 결정 3개)
+- 중복 검사 → 복사본 4쌍(check.sh), README·baseline·structure 모순 정리
+- scripts/install.sh·install.ps1 작성, reviewer 2회 + 격리 실험 반영(marketplace 이동은 remove 없이 add)
+- ps1 -DryRun(pwsh 7.6.7) 정상 확인. README·RELEASE.md 설치 안내 갱신
 ## 열린 것
-- 설치 스크립트(install.sh/ps1)·bump-version.mjs 미작성 — 사양은 RELEASE.md 5·6장
-- 검증 필요: CI 에서 claude plugin test 로그인 필요 여부, 로컬 marketplace 캐시 복사 여부, $.store 실제 경로
-- check.sh validate 가 "passed with warnings" — 경고 내용 미확인, claude plugin test 로컬 미실행
+- install.sh 실행 검증 없음(게이트 차단, 사용자 PC 미실행) → push 후 CI scripts 잡(shellcheck·dry-run)으로 확인
+- install.sh 실행 권한: 사용자가 `git update-index --chmod=+x scripts/install.sh` 필요(게이트 차단)
+- 미검증: 버전 상승 update 후 설정 유지, PS 5.1 dry-run·리다이렉트 Authorization, Linux/macOS 경로 비교
+- 두 설치기 500줄 직전(sh 492·ps1 498) — 기능 추가 전 분할 필요
 ## 다음에
-- 첫 태그 v1.1.0-rc.1 로 release 워크플로 점검 → v1.1.0
+- push → CI 확인 → v1.1.0-rc.1 태그로 release 워크플로 점검 → 실제 설치(이 PC: my-mods 경로 이동, tcw→qhud)
 - v1.2.0 에서 qhud /tcw-usage 제거

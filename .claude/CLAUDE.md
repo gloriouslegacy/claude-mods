@@ -36,9 +36,9 @@ claude --plugin-dir ./<mod>        # 한 세션에만 로드해 수동 확인; �
 - 파일 첫 줄은 모듈을 설명하는 영문 머리 주석. 코드 주석은 영문. 사용자 화면에 보이는 문구도 영문으로 통일한다.
 - 줄바꿈은 `.gitattributes` 로 고정: `.ps1` 만 CRLF, 나머지(`.sh`·`.ts`·`.tsx`·`.json`·`.md`·`.yml`) LF.
 - 플러그인 버전은 `<mod>/.claude-plugin/plugin.json` 과 `.claude-plugin/marketplace.json` 의 같은 항목을 **반드시 함께** 올린다(어긋나면 marketplace 갱신이 안 먹고 `check.sh` 가 실패). 화면·`userConfig` 키가 바뀌면 minor, 내부 수정은 patch.
-- 묶음 버전 `VERSION`: 어느 플러그인이든 minor 이상이면 번들 minor, patch 만이면 번들 patch. `CHANGELOG.md` 맨 위에 `## vX.Y.Z (YYYY-MM-DD)` 절이 있어야 CI 가 통과하고, 그 절이 릴리스 노트가 된다.
+- 묶음 버전 `VERSION`: 플러그인 major·제거 → 번들 major, minor → minor, patch·설치기·문서만 → patch(릴리스 안에서 가장 큰 것 하나, 표는 `docs/release/RELEASE.md` 7장). `CHANGELOG.md` 맨 위에 `## vX.Y.Z (YYYY-MM-DD)` 절을 쓴다(관례 — CI 는 그 절의 존재만 검사). 그 절이 릴리스 노트가 된다.
 - `userConfig` 키 이름 변경·삭제는 사용자의 `/config` 값을 날린다 — CHANGELOG 에 "설정 이름 변경"으로 분명히 적는다.
 - 기능·명령·설정을 바꾸면 `README.md` 와 `README.ko.md` 를 함께 고친다(PR 템플릿 체크 항목).
 - 릴리스: `v*` 태그 push → `release.yml` 이 check 후 tests 를 뺀 zip + `SHA256SUMS.txt` 를 게시. 태그는 지우거나 다시 찍지 않는다.
-- 설치 스크립트·`bump-version.mjs` 는 아직 없다(계획, `scripts/CLAUDE.md`). 그동안 릴리스는 설치 스크립트 없이 나가고(경고만) 사용자는 README 수동 설치를 따른다. 버전은 두 파일을 손으로 함께 올린다.
+- 설치 스크립트는 `scripts/install.sh`·`install.ps1`(동작 규칙은 `scripts/CLAUDE.md`). `bump-version.mjs` 는 아직 없어 버전은 두 파일을 손으로 함께 올린다.
 - 릴리스 zip 구성: 플러그인 폴더(`tests/`·엔진 types·`CLAUDE.md`·`CLAUDE.local.md` 제외) + `docs/migration/`(README 링크 대상) + 루트 문서. zip 에 들어가는 경로를 바꾸면 `release.yml` 과 README 링크를 함께 고친다.

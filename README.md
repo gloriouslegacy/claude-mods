@@ -110,13 +110,44 @@ last: implementer · Edit src/parser.ts
 | `▸ unlisted loops (N)` | Loops the engine's agent list does not name (a workflow's agents, engine forks like compaction), folded; click to unfold |
 | `last:` | The latest thing that happened |
 
-Session-only, no tokens spent: it reads what the engine already has. `/agent-flow text` prints the same tree as text, and where no pane can be drawn (a `-p` run, an editor extension) `/agent-flow` prints it that way by itself.
+The pane shows this session's agents only, and `/agent-flow stats` records are kept across sessions. No tokens spent: it reads what the engine already has. `/agent-flow text` prints the same tree as text, and where no pane can be drawn (a `-p` run, an editor extension) `/agent-flow` prints it that way by itself.
 
 ---
 
 ## 2. Install
 
-Unzip to a folder you will keep, e.g. `C:\Users\<you>\claude-mods` or `~/claude-mods`, and run in that folder:
+### Install script (recommended)
+
+Download the release, unzip it, and run the script inside it. The repository is private, so you need `gh auth login` or a `GITHUB_TOKEN` (fine-grained token for this repository, Contents: Read-only).
+
+```bash
+# macOS / Linux / WSL
+gh release download --repo gloriouslegacy/claude-mods --pattern 'my-mods-*.zip' --pattern SHA256SUMS.txt
+unzip my-mods-*.zip && sh my-mods/install.sh
+```
+
+```powershell
+# Windows
+gh release download --repo gloriouslegacy/claude-mods --pattern 'my-mods-*.zip' --pattern SHA256SUMS.txt
+Expand-Archive my-mods-*.zip -DestinationPath .
+powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
+```
+
+Run from the unzipped release, the script installs that bundle (no download, no checksum step). Run it on its own (with `gh` logged in or `GITHUB_TOKEN` set) and it downloads the latest release and checks it against `SHA256SUMS.txt`. It installs all four plugins in user scope, puts the files in `%LOCALAPPDATA%\claude-mods` (Windows) or `~/.local/share/claude-mods` (elsewhere; `XDG_DATA_HOME` is honored), and registers the `my-mods` marketplace from there. WSL has its own `~/.claude`, separate from Windows: install in each environment you use.
+
+| Option (bash / PowerShell) | Does |
+|---|---|
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all four) |
+| `--version v1.4.0` / `-Version v1.4.0` | A given release (default: latest) |
+| `--zip <file>` `--sums <file>` / `-Zip <file>` `-Sums <file>` | A zip you already have; `SHA256SUMS.txt` must sit beside it, or pass `--sums` |
+| `--dir <path>` / `-Dir <path>` | Install folder (not your home folder or a drive root) |
+| `--rollback` / `-Rollback` | Go back to the previous install |
+| `--uninstall` / `-Uninstall` | Remove the plugins, the marketplace and the install folder; your notes, pins and run logs (data) are kept, but your `/config` values are erased |
+| `--dry-run` / `-DryRun` | Print what would be done, change nothing |
+
+### Manual install
+
+Unzip the release to a folder you will keep, e.g. `C:\Users\<you>` or `~`. It creates a top-level `my-mods/` folder. Run the commands below inside that `my-mods/` folder:
 
 ```bash
 claude plugin marketplace add ./
@@ -127,7 +158,7 @@ claude plugin install agent-flow@my-mods --scope user
 ```
 
 - `--scope user` loads them in every project, in the terminal and in the desktop app's Code tab. Install only the ones you want.
-- An "option not yet set" note at install is fine: defaults apply. Add `--config ttl=1h` / `--config model=haiku` to set them up front.
+- An "option not yet set" note at install is fine: defaults apply. To set them up front, add `--config ttl=1h` to the qhud install (qhud's key) or `--config model=haiku` to the change-tutor install (change-tutor's key), e.g. `claude plugin install change-tutor@my-mods --scope user --config model=haiku`.
 - The plugins are read straight from this folder: **do not move or delete it**. After editing a file, run `/reload-plugins`.
 
 Other ways to load them:
@@ -139,14 +170,14 @@ claude --plugin-dir ./qhud --plugin-dir ./change-tutor --plugin-dir ./pinboard -
 
 ```json
 // ~/.claude/settings.json — always load (absolute paths; ";" on Windows, ":" on macOS/Linux)
-{ "env": { "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\<you>\\claude-mods\\qhud;C:\\Users\\<you>\\claude-mods\\pinboard" } }
+{ "env": { "CLAUDE_CODE_PLUGIN_DIRS": "C:\\Users\\<you>\\my-mods\\qhud;C:\\Users\\<you>\\my-mods\\pinboard" } }
 ```
 
-Update: unzip the new version over the same folder, then run `claude plugin marketplace update my-mods` and `/reload-plugins` (or start a new session). Settings you changed in `/config` are kept.
+Update: run the same install script command again, then `/reload-plugins` (or start a new session). Settings you changed in `/config` are kept. (Manual install: unzip the new version over the same folder, then run `claude plugin marketplace update my-mods` and `/reload-plugins`.)
 
 Upgrading from a version with **tcw**? It is now **qhud**: see [docs/migration/RENAME_TCW_TO_QHUD.md](docs/migration/RENAME_TCW_TO_QHUD.md) (settings are set again under `qhud`).
 
-Remove: `claude plugin uninstall <name>@my-mods`.
+Remove: run the script with `--uninstall` (`-Uninstall` on Windows). (Manual install: `claude plugin uninstall <name>@my-mods`.)
 
 blast-radius and replay-theater are no longer part of this set. If you installed them before, remove them with `claude plugin uninstall blast-radius@my-mods` and `claude plugin uninstall replay-theater@my-mods`.
 
