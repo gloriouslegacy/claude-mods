@@ -1,0 +1,121 @@
+# ci — validate and test the plugins on every PR and push to main, and once a week against the
+# newest Claude Code so an engine update that breaks a mod is seen before anyone installs it.
+# The job id "check" is the status check the main branch ruleset requires.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 0 * * 1' # Mondays 00:17 UTC (09:17 KST)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Set the repository variable SKIP_PLUGIN_TESTS=true if `claude plugin test` turns out to need a
+      # login on the runner; validation still runs, and tests are then run locally before a release.
+      - name: Validate and test every plugin
+        env:
+          SKIP_PLUGIN_TESTS: ${{ vars.SKIP_PLUGIN_TESTS }}
+        run: bash scripts/check.sh
+
+      - name: VERSION and CHANGELOG are in place
+        run: |
+          test -s VERSION || { echo "VERSION is missing or empty"; exit 1; }
+          grep -q "^## v$(cat VERSION)" CHANGELOG.md || { echo "CHANGELOG.md has no '## v$(cat VERSION)' section"; exit 1; }
+
+  scripts:
+    # Lints the install scripts and runs them with --dry-run on the three platforms they target.
+    # Each step is skipped while its script does not exist yet.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint install.sh
+        if: runner.os != 'Windows' && hashFiles('scripts/install.sh') != ''
+        run: |
+          # info/style notes (SC2317 on trap handlers, SC2020 on tr sets) are intended; fail on warnings and errors
+          if command -v shellcheck >/dev/null; then shellcheck --shell=sh --severity=warning scripts/install.sh; else echo "shellcheck not on this runner, skipped"; fi
+
+      - name: Lint install-lib.sh
+        if: runner.os != 'Windows' && hashFiles('scripts/install-lib.sh') != ''
+        run: |
+          if command -v shellcheck >/dev/null; then shellcheck --shell=sh --severity=warning scripts/install-lib.sh; else echo "shellcheck not on this runner, skipped"; fi
+
+      - name: Dry run install.sh
+        if: runner.os != 'Windows' && hashFiles('scripts/install.sh') != ''
+        run: sh scripts/install.sh --dry-run
+
+      - name: Lint install.ps1
+        if: runner.os == 'Windows' && hashFiles('scripts/install.ps1') != ''
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $issues = Invoke-ScriptAnalyzer -Path scripts/install.ps1 -Severity Error, Warning
+          $issues | Format-Table -AutoSize
+          if ($issues | Where-Object Severity -eq 'Error') { exit 1 }
+
+      - name: Lint install-lib.ps1
+        if: runner.os == 'Windows' && hashFiles('scripts/install-lib.ps1') != ''
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Scope CurrentUser -Force }
+          $issues = Invoke-ScriptAnalyzer -Path scripts/install-lib.ps1 -Severity Error, Warning
+          $issues | Format-Table -AutoSize
+          if ($issues | Where-Object Severity -eq 'Error') { exit 1 }
+
+      - name: Dry run install.ps1 (PowerShell 7)
+        if: runner.os == 'Windows' && hashFiles('scripts/install.ps1') != ''
+        shell: pwsh
+        run: ./scripts/install.ps1 -DryRun
+
+      - name: Dry run install.ps1 (Windows PowerShell 5.1)
+        if: runner.os == 'Windows' && hashFiles('scripts/install.ps1') != ''
+        shell: powershell
+        run: ./scripts/install.ps1 -DryRun
+
+  report:
+    # A failed weekly run opens (or comments on) one issue, so an engine update that broke a mod is noticed.
+    needs: [check]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Weekly check failed against the latest Claude Code"
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The scheduled run failed: $RUN_URL. A Claude Code update may have changed the hooks API; see the check job log."
+          fi

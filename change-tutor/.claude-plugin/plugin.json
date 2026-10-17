@@ -1,0 +1,28 @@
+{
+  "name": "change-tutor",
+  "version": "0.4.0",
+  "description": "A learning-note pane for every file Claude changes: the request, why it changed, the diff, an easy explanation and a quiz",
+  "author": {
+    "name": "kimjaewoo"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Note changes",
+      "description": "Off by default. On: every file the main agent changes becomes a note, and the status line shows the count. /change-tutor on|off switches it for one session",
+      "default": false
+    },
+    "model": {
+      "type": "string",
+      "title": "Tutor model",
+      "description": "Model used for Explain simply and Quiz",
+      "default": "haiku",
+      "options": [
+        "haiku",
+        "sonnet",
+        "opus"
+      ]
+    }
+  }
+}
