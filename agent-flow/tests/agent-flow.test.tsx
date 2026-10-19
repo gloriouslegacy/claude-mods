@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { doing, elapsed, fmt, fresh, headline, mergeRoster, shouldTick, stepTokens, toolLabel, tree } from '../hooks/flow'
+import { doing, elapsed, fmt, fresh, headline, mergeRoster, shouldAutoOpen, shouldTick, stepTokens, toolLabel, tree } from '../hooks/flow'
 import type { RosterEntry } from '../hooks/flow'
 import type { AgentRow } from '../types'
 import { groups, statsDays, statsText } from '../hooks/stats'
@@ -36,7 +36,7 @@ const usage = (model: string, input: number) => ({ input_tokens: input, output_t
 const patch = [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-a', '+b'] }]
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`the flow shows main and subagents with models, tokens and their diffs on ${surface}`, async ($, on) => {
+  test(`the flow shows main and subagents with models, tokens and their diffs on ${surface}`, { options: { autoOpen: false } }, async ($, on) => {
     mock.clock(on, { now: 10_000 })
     const opened: string[] = []
     on('session.start', () => ({ cwd: '/' }))
@@ -64,7 +64,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     }
     await $.tool.call({ tool: 'Edit', tool_use_id: 'e1', file_path: '/p/src/main.ts', old_string: 'a', new_string: 'b' })
     await $.tool.call({ tool: 'Edit', tool_use_id: 'e2', file_path: '/p/src/parser.ts', old_string: 'a', new_string: 'b', agentId: 'a1' })
-    expect(opened).toEqual([]) // never opens by itself
+    expect(opened).toEqual([]) // autoOpen off: never opens by itself
 
     await $.command.run({ command: 'aflow', args: '' })
     expect(opened).toEqual(['agent-flow'])
@@ -298,4 +298,70 @@ test('a closed pane stops the 2 s tick from reading the roster; an open one resu
   panes = [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }]
   await clock.advance(10_000)
   expect(listed).toBeGreaterThan(0)
+})
+
+test('shouldAutoOpen: on, first time, and not up already', () => {
+  expect(shouldAutoOpen(true, false, [], 'agent-flow')).toBe(true)
+  expect(shouldAutoOpen(true, false, undefined, 'agent-flow')).toBe(true) // no pane list: once-per-run rule only
+  expect(shouldAutoOpen(false, false, [], 'agent-flow')).toBe(false)
+  expect(shouldAutoOpen(true, true, [], 'agent-flow')).toBe(false)
+  expect(shouldAutoOpen(true, false, [{ id: 'agent-flow' }], 'agent-flow')).toBe(false)
+  expect(shouldAutoOpen(true, false, [{ id: 'other' }], 'agent-flow')).toBe(true)
+})
+
+test('autoOpen opens the pane on the first session.start only', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  const opened: string[] = []
+  on('session.start', () => ({ cwd: '/p' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.panes', () => ({ value: [] }))
+  on('ui.open', (_$, e) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } }
+  })
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  expect(opened).toEqual(['agent-flow'])
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true }) // resume / compact / clear
+  expect(opened).toEqual(['agent-flow'])
+})
+
+test('autoOpen off: session.start does not open the pane', { options: { autoOpen: false } }, async ($, on) => {
+  mock.clock(on, { now: 0 })
+  const opened: string[] = []
+  on('session.start', () => ({ cwd: '/p' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.panes', () => ({ value: [] }))
+  on('ui.open', (_$, e) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } }
+  })
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  expect(opened).toEqual([])
+})
+
+test('autoOpen where no pane is drawn: one toast, once', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  const toasts: string[] = []
+  on('session.start', () => ({ cwd: '/p' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.open', () => ({ value: { isPlaced: false } }))
+  on('ui.toast', (_$, e) => {
+    toasts.push(String((e as { text?: string }).text ?? JSON.stringify(e)))
+    return { value: undefined }
+  })
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: false })
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: false })
+  expect(toasts.length).toBe(1)
+  expect(toasts[0]).toContain('/aflow text')
+})
+
+test('autoOpen: a throwing open is swallowed', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  on('session.start', () => ({ cwd: '/p' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.open', () => {
+    throw new Error('no ui')
+  })
+  const result = await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  expect(result.cwd).toBe('/p')
 })

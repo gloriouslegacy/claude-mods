@@ -195,3 +195,7 @@ export const asText = (
 /** Whether the 2 s tick has a pane to redraw: ours is open, drawn, and the tab in front. */
 export const shouldTick = (panes: readonly { id: string; isShown: boolean; isPlaced: boolean }[], id: string): boolean =>
   panes.some(p => p.id === id && p.isPlaced && p.isShown)
+
+/** Whether session.start opens the pane by itself: the setting is on, it has not opened this run, and it is not up already. */
+export const shouldAutoOpen = (isEnabled: boolean, hasOpened: boolean, panes: readonly { id: string }[] | undefined, id: string): boolean =>
+  isEnabled && !hasOpened && !(panes ?? []).some(p => p.id === id)

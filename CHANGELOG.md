@@ -2,6 +2,13 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v1.4.0 (2026-10-19)
+
+- **agent-flow 0.6.0: the pane now opens by itself. Default behavior change.** After updating, the Agent flow pane appears when the first session of a Claude Code run starts. To turn it off, set `autoOpen` to `false` under agent-flow in `/config`.
+  - New setting `agent-flow.autoOpen` (boolean, default `true`, "Open pane on session start"). It opens the pane once per Claude Code run; resume and compact do not reopen it, and a pane that is already open is left as is.
+  - Where no pane can be drawn (for example a `-p` run), a one-time toast tells you to use `/aflow text`.
+  - `/aflow`, `/aflow text`, `/aflow stats`, the other settings and logged runs are unchanged.
+
 ## v1.3.0 (2026-10-17)
 
 - **agent-flow 0.5.0: the old `/agent-flow` command is removed**, as announced in v1.2.0. Use `/aflow` (`/aflow text`, `/aflow stats [days]`). Settings (`agent-flow.*`) and logged runs are unchanged.

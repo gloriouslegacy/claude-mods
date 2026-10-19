@@ -83,7 +83,7 @@ Off with `pinboard.deliver` = `false`.
 
 The command was `/agent-flow` before my-mods v1.2.0. The old name was removed in v1.3.0 (agent-flow 0.5.0); use `/aflow`.
 
-`/aflow` opens a pane (it never opens by itself) with the main agent and every subagent of the session:
+`/aflow` opens a pane (it also opens by itself when a session starts; turn that off with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session:
 
 ```
 Agent flow · main + 2 agents · 2 running · 0 waiting
@@ -243,7 +243,7 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 
 ### agent-flow
 
-- Open it with **`/aflow`** whenever you want to look; it does not open by itself.
+- The pane opens once when Claude Code starts its first session (setting `agent-flow.autoOpen`, on by default). Resuming or compacting does not reopen it, and an already open pane is left as is. Where no pane can be drawn, a one-time toast points you to `/aflow text`. Open it any time with **`/aflow`**.
 - Click `[+]` on a row for its model, task prompt and last tool calls; `▸ unlisted loops` unfolds the loops the engine does not list.
 - Click `[main_Diff]` / `[sub_Diff]` (or focus the pane with `ctrl+x tab` and move to it). In the diff view: `h` / `l` previous / next change, `v` show all / collapse, `b` back to the flow.
 - A new session starts with an empty flow.
@@ -264,6 +264,7 @@ Use it to see which agents are worth moving to a cheaper model.
 | `agent-flow.slowSeconds` | seconds before a tool call is ⚠ slow | `60` |
 | `agent-flow.slowShellSeconds` | the same for Bash / PowerShell | `180` |
 | `agent-flow.silentSeconds` | seconds before a working agent is ⚠ silent | `120` |
+| `agent-flow.autoOpen` | `true`, `false` — open the pane on session start (once per Claude Code run) | `true` |
 | `agent-flow.log` | `true`, `false` — log finished subagent runs for stats | `true` |
 
 ---

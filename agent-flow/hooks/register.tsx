@@ -1,5 +1,5 @@
 // agent-flow: one pane with the main agent and every subagent of the session, opened with /aflow
-// (never by itself); /aflow text prints the same as text.
+// or once when Claude Code starts (autoOpen); /aflow text prints the same as text.
 //   Agent flow · main + 2 agents · 2 running · 0 waiting
 //   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
 //   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
@@ -39,6 +39,7 @@ import {
   mergeRoster,
   short,
   shortPath,
+  shouldAutoOpen,
   shouldTick,
   stepTokens,
   toolLabel,
@@ -186,11 +187,37 @@ async function run($: EngineInterface, args: string, limits: Limits): Promise<st
   return 'Opened Agent flow.'
 }
 
+/** autoOpen: open the pane by itself on the first session.start of this run; never blocks the start. */
+async function autoOpen($: EngineInterface, isEnabled: boolean, hasOpened: boolean): Promise<void> {
+  if (!isEnabled || hasOpened) return
+  let panes: { id: string }[] | undefined
+  try {
+    panes = await $.ui.panes()
+  } catch {
+    panes = undefined // no pane list here: the once-per-run rule alone decides
+  }
+  if (!shouldAutoOpen(isEnabled, hasOpened, panes, PANE)) return
+  let isPlaced: boolean
+  try {
+    ;({ isPlaced } = await $.ui.open({ id: PANE, title: TITLE }))
+  } catch {
+    return // a pane that will not open must not stop the session; /aflow still opens it
+  }
+  if (isPlaced) return
+  try {
+    $.ui.toast('Agent flow: no pane can be drawn here. Use /aflow text.')
+  } catch {
+    // no toast here either: stay silent rather than fail the session start
+  }
+}
+
 const seconds = (v: unknown, fallback: number): number => (typeof v === 'number' && v > 0 ? v * 1000 : typeof v === 'string' && Number(v) > 0 ? Number(v) * 1000 : fallback)
 
 export const register: Register = (on, options) => {
   const limits: Limits = { slow: seconds(options.slowSeconds, 60_000), slowShell: seconds(options.slowShellSeconds, 180_000), silent: seconds(options.silentSeconds, 120_000) }
   const keepLog = options.log !== false
+  const isAutoOpen = options.autoOpen !== false
+  let hasOpened = false // per run: resume, compact and clear send session.start again; a closed pane stays closed
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const command = { description: 'Open the Agent flow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
@@ -204,6 +231,9 @@ export const register: Register = (on, options) => {
       await sync($)
       await update($, tick, t => t + 1)
     })
+    const wasOpened = hasOpened
+    hasOpened = true // the first session.start decides, whether or not it opened anything
+    await autoOpen($, isAutoOpen, wasOpened)
     return result
   })
 

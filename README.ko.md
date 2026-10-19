@@ -82,7 +82,7 @@ Claude가 파일을 만들거나 고칠 때(Edit / Write)마다 노트가 하나
 
 명령 이름은 my-mods v1.2.0 전까지 `/agent-flow`였습니다. 옛 이름은 v1.3.0(agent-flow 0.5.0)에서 제거되었으니 `/aflow`를 쓰세요.
 
-`/aflow`로 패널을 엽니다(자동으로 열리지 않습니다). 세션의 메인 에이전트와 모든 서브에이전트가 보입니다.
+`/aflow`로 패널을 엽니다(세션이 시작될 때도 자동으로 열리며, `/config`의 `agent-flow.autoOpen`으로 끌 수 있습니다). 세션의 메인 에이전트와 모든 서브에이전트가 보입니다.
 
 ```
 Agent flow · main + 2 agents · 2 running · 0 waiting
@@ -242,7 +242,7 @@ blast-radius와 replay-theater는 이 묶음에서 빠졌습니다. 예전에 �
 
 ### agent-flow
 
-- 보고 싶을 때 **`/aflow`**로 엽니다. 자동으로 열리지 않습니다.
+- Claude Code를 실행한 뒤 첫 세션이 시작될 때 패널이 한 번 열립니다(설정 `agent-flow.autoOpen`, 기본 켜짐). resume·compact로는 다시 열리지 않고, 이미 열려 있으면 그대로 둡니다. 패널을 그릴 수 없는 환경에서는 `/aflow text`를 쓰라는 토스트가 한 번 나옵니다. 언제든 **`/aflow`**로 열 수 있습니다.
 - 줄의 `[+]`를 누르면 모델, 작업 프롬프트, 최근 도구 호출이 펼쳐지고, `▸ unlisted loops`를 누르면 목록에 없는 루프가 펼쳐집니다.
 - `[main_Diff]` / `[sub_Diff]`를 클릭하거나, `ctrl+x tab`으로 패널에 포커스를 준 뒤 이동합니다. diff 화면에서 `h` / `l` 이전·다음 변경, `v` 펼치기·접기, `b` 흐름 화면으로 돌아가기.
 - 새 세션은 빈 화면에서 시작합니다.
@@ -263,6 +263,7 @@ runner       Haiku 5.5    15    260.0k    14%    17.3k       43s    120      0
 | `agent-flow.slowSeconds` | 도구 호출을 ⚠ slow로 표시할 초 | `60` |
 | `agent-flow.slowShellSeconds` | Bash·PowerShell용 같은 기준 | `180` |
 | `agent-flow.silentSeconds` | 작업 중 에이전트를 ⚠ silent로 표시할 초 | `120` |
+| `agent-flow.autoOpen` | `true`, `false` — 세션 시작 때 패널 열기(Claude Code 실행당 한 번) | `true` |
 | `agent-flow.log` | `true`, `false` — 서브에이전트 실행 기록(stats용) | `true` |
 
 ---
