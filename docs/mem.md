@@ -1,10 +1,12 @@
-# 세션 메모 (갱신 2026-10-17 · 커밋 3d0f3be · v1.3.0 기준)
+# 세션 메모 (갱신 2026-10-19 · 커밋 8d6ceaa · v1.3.0 기준)
 ## 끝낸 것 (최근)
-- v1.3.0 게시(CI·release 통과, zip 루트에 설치기 4파일): agent-flow 0.5.0 옛 `/agent-flow` 제거, 설치기 진입+lib 분할, 기본 위치 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`. 명세 docs/spec/v1.3.0.md
-- 설치기 검증: 사용자 `!` 로 PSScriptAnalyzer 0건·pwsh 7/PS 5.1·sh dry-run·거부 검사, CI 에서 shellcheck 통과
+- v1.3.0 게시(설치기 진입+lib 분할, 기본 위치 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`). 명세 docs/spec/v1.3.0.md
+- 개발 환경 WSL2(Ubuntu, zsh)로 이전 — `check.sh` 전부 통과, WSL·Windows 양쪽 `~/.claude/claude-mods/current` 에 v1.3.0, 옛 `%LOCALAPPDATA%` 폴더 없음
+- fable 0.11.7 검토: 이 레포 `install.*` 는 규칙 A 대상 아님(리터럴 경로 `sh -n`·dry-run 메인 통과) → lessons·`scripts/CLAUDE.md` 갱신
 ## 열린 것
-- 이 PC 는 아직 옛 위치(`%LOCALAPPDATA%\claude-mods`)에 v1.2.0 설치 — ps1 로 v1.3.0 설치 후 옛 폴더 수동 삭제
-- 미검증: Linux/macOS 실설치. RELEASE.md 4.2(PR·check 필수)는 직접 push 방식과 다름
+- 미검증: macOS 실설치, 서브에이전트의 install.sh 실행. RELEASE.md 4.2(PR·check 필수)는 직접 push 방식과 다름
+- WSL 에 shellcheck·pwsh 없음(CI 가 lint) — 로컬 lint 원하면 `sudo apt install shellcheck`
 - 낮음 보류: sh 상대경로 CLAUDE_CONFIG_DIR 미절대화, sh 머리 주석 em dash, ps1 `-Dir` 링크 미해석(문서화됨)
 ## 다음에
+- 새 기능명세는 fable 0.11.7 양식(`영향:`·실패 지도 `예외:`·전제·축소 질문)으로
 - Windows 에서 Git Bash 로 install.sh 실제 실행 금지(marketplace 가 `/c/...` 경로로 등록될 수 있음) — 필요하면 README 에 한 줄

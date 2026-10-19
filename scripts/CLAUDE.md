@@ -17,6 +17,6 @@
 - marketplace 경로를 옮길 때는 같은 이름으로 `marketplace add` 만 다시 한다. `marketplace remove` 는 플러그인 uninstall 과 `/config` 값 삭제를 함께 하므로 `--uninstall` 에서만 쓴다(`uninstall --keep-data` 도 설정값은 지운다 — 2026-10-17 격리 실험).
 - 상태를 바꾸는 `claude plugin …` 명령을 새로 쓰기 전에는 `CLAUDE_CONFIG_DIR=<임시폴더>` 격리 환경에서 부수효과를 먼저 확인한다.
 - 각 파일 500줄 미만(v1.3.0 분할 뒤 sh 328·lib 223, ps1 347·lib 202). 진입 파일에는 단독 실행(`curl | sh`·`irm | iex`)에 필요한 것만 두고 나머지는 lib 로 보낸다. 설치기 파일을 더하면 `release.yml` 복사·존재 검사와 `ci.yml` lint 를 함께 고친다.
-- `install.*` 실행(dry-run 포함)과 git show/diff 파이프는 fable-gate 가 막는다 — 실행 검증은 사용자가 터미널에서 한다.
+- 이 `install.*` 는 fable 설치기가 아니라 게이트 규칙 A 대상이 아니다: 리터럴 경로의 `sh -n`·`--dry-run`(`CLAUDE_CONFIG_DIR` 를 임시폴더로)·`git show`/`diff` 는 통과, `$변수`·heredoc 속 경로는 보수적으로 막힌다(2026-10-19 WSL2·fable 0.11.7 확인). ps1 실행 검증은 사용자가 Windows 에서 한다.
 - `bump-version.mjs` 는 계획(plugin.json+marketplace.json 만, VERSION 은 릴리스 때 손으로).
 ADR: docs/design/baseline.md, docs/release/RELEASE.md, docs/spec/v1.3.0.md
