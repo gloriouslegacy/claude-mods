@@ -80,8 +80,6 @@ Claude가 파일을 만들거나 고칠 때(Edit / Write)마다 노트가 하나
 
 ### agent-flow — 메인 에이전트와 서브에이전트를 한 패널에
 
-명령 이름은 my-mods v1.2.0 전까지 `/agent-flow`였습니다. 옛 이름은 v1.3.0(agent-flow 0.5.0)에서 제거되었으니 `/aflow`를 쓰세요.
-
 `/aflow`로 패널을 엽니다(세션이 시작될 때도 자동으로 열리며, `/config`의 `agent-flow.autoOpen`으로 끌 수 있습니다). 세션의 메인 에이전트와 모든 서브에이전트가 보입니다.
 
 ```
@@ -138,14 +136,12 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 
 릴리스의 `my-mods/` 루트에는 설치기 파일이 네 개 있습니다: `install.sh` + `install-lib.sh`, `install.ps1` + `install-lib.ps1`. 짝을 같은 폴더에 함께 두세요. 진입 파일이 lib를 같은 폴더, 번들, 설치 폴더의 `current` / `previous` 순으로 찾습니다.
 
-**v1.2.x에서 올릴 때:** 기본 설치 폴더가 바뀌었습니다(전에는 Windows `%LOCALAPPDATA%\claude-mods`, 그 외 `~/.local/share/claude-mods`). 새 스크립트로 한 번 설치하면 `my-mods` marketplace가 새 위치로 다시 등록되고 플러그인과 `/config` 값은 유지됩니다. 옛 폴더는 새 위치로 설치한 **뒤에** 손으로 지우세요. 먼저 지우면 marketplace가 끊어집니다. v1.2.x 설치에는 lib 파일이 없어서, 파일 없이 실행하는 `--rollback`·`--uninstall`(`curl | sh`, `irm | iex`)은 v1.3.0을 한 번 설치하거나 압축을 푼 v1.3.0 릴리스 폴더에서 실행해야 합니다.
-
 `~/.claude`를 dotfiles 등으로 PC 간에 동기화하면 설치 폴더(번들)도 함께 딸려 갑니다. marketplace 경로가 절대 경로라 다른 PC에서는 깨지므로, PC마다 설치하고 `claude-mods`는 동기화에서 빼는 것을 권합니다.
 
 | 옵션 (bash / PowerShell) | 동작 |
 |---|---|
 | `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
-| `--version v1.4.0` / `-Version v1.4.0` | 특정 버전 설치(기본: 최신) |
+| `--version v1.0.0` / `-Version v1.0.0` | 특정 버전 설치(기본: 최신) |
 | `--zip <파일>` `--sums <파일>` / `-Zip <파일>` `-Sums <파일>` | 이미 받은 zip으로 설치. `SHA256SUMS.txt`가 zip 옆에 있어야 하며, 다른 위치면 `--sums` 지정 |
 | `--dir <경로>` / `-Dir <경로>` | 설치 폴더 변경(홈 폴더·드라이브 루트·Claude 설정 폴더 자체는 거부) |
 | `--rollback` / `-Rollback` | 바로 전 설치로 되돌리기 |
@@ -274,3 +270,7 @@ runner       Haiku 5.5    15    260.0k    14%    17.3k       43s    120      0
 claude plugin validate ./<모드>
 claude plugin test ./<모드>
 ```
+
+## 라이선스
+
+MIT. [LICENSE](LICENSE) 를 보세요.

@@ -91,7 +91,7 @@ claude-mods/                          ← 저장소 루트
 **릴리스 zip 안의 구조**(사용자가 받는 것):
 
 ```
-my-mods-v1.4.0.zip
+my-mods-v1.0.0.zip
 └── my-mods/
     ├── .claude-plugin/marketplace.json
     ├── qhud/
@@ -171,7 +171,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 
 - `ci.yml`의 `check` 잡 id가 4.2에서 요구하는 상태 검사(`check`)다.
 - `release.yml`은 `scripts/install.sh`·`install-lib.sh`·`install.ps1`·`install-lib.ps1` 네 파일을 zip 루트로 복사하고, 하나라도 없으면 경고가 아니라 실패한다(v1.3.0 부터). 실행 권한은 `install.sh` 만 준다.
-- 첫 태그 절차: `v1.1.0-rc.1`(사전 릴리스)로 워크플로를 점검한 뒤 `v1.1.0`. v1.0.0 은 태그 없이 CHANGELOG 에만 남는다.
+- 첫 태그 절차: 사전 릴리스(`-rc.N`)로 워크플로를 점검한 뒤 정식 태그. 2026-10-28 공개 전환 때 비공개 시절 히스토리를 합치고 태그·릴리스(v1.1.0-rc.1~v1.4.0)를 지운 뒤 v1.0.0 부터 다시 셌다(태그 삭제 금지의 유일한 예외).
 - 로컬 검증: 두 워크플로 모두 actionlint 1.7.7 통과, zip 생성 단계는 로컬에서 같은 명령으로 재현해 제외 규칙을 확인했다. 실제 GitHub 러너 실행은 **검증 필요**(10장 체크리스트의 사전 릴리스 태그로 확인).
 
 ### 4.5 사용자가 비공개 저장소에서 릴리스를 받는 방법
@@ -190,9 +190,9 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 2. 버전 올리기: `node scripts/bump-version.mjs agent-flow minor`(계획)
    - 해당 플러그인의 `plugin.json`과 `marketplace.json`의 같은 항목을 함께 올린다. 두 파일의 버전이 어긋나면 marketplace 갱신이 안 먹는다. `bump-version.mjs`가 생기기 전에는 두 파일을 손으로 함께 올린다.
    - `bump-version.mjs`는 이 두 파일만 올린다. 묶음 버전 `VERSION`은 릴리스 때 한 번 정한다(규칙은 7장 표).
-3. `CHANGELOG.md` 맨 위에 `## v1.4.0 (2026-10-20)` 단락을 쓰고 플러그인별 변경을 적는다. 릴리스 노트로 그대로 쓰인다. CI 는 `## v<VERSION>` 단락의 존재만 확인한다(맨 위인지는 보지 않는다).
+3. `CHANGELOG.md` 맨 위에 `## v1.0.0 (2026-10-28)` 단락을 쓰고 플러그인별 변경을 적는다. 릴리스 노트로 그대로 쓰인다. CI 는 `## v<VERSION>` 단락의 존재만 확인한다(맨 위인지는 보지 않는다).
 4. 로컬에서 `bash scripts/check.sh` 통과 확인
-5. `git tag v1.4.0 && git push origin v1.4.0` → release 워크플로가 zip과 `SHA256SUMS.txt`를 게시
+5. `git tag v1.0.0 && git push origin v1.0.0` → release 워크플로가 zip과 `SHA256SUMS.txt`를 게시
 6. 최소 한 PC에서 `install.sh` / `install.ps1`로 새 버전을 설치하고, 4개 플러그인이 로드되는지 확인(`/plugin` 목록, `/aflow`, `/pin list`)
 
 ---
@@ -204,7 +204,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 | 단계 | 내용 |
 |---|---|
 | 1. 사전 확인 | `claude` 명령이 있는지, `claude --version`이 2.1.287 이상인지. 없거나 낮으면 이유를 말하고 중단 |
-| 2. 받기 | 기본은 최신 Release. `--version v1.4.0`으로 특정 버전. 4.5의 순서(gh → 토큰 → `--zip`). 스크립트 옆에 번들(`.claude-plugin/marketplace.json`)이 있으면(압축 푼 zip 안에서 실행) 그 번들을 설치하고 받기·3단계를 생략한다 |
+| 2. 받기 | 기본은 최신 Release. `--version v1.0.0`으로 특정 버전. 4.5의 순서(gh → 토큰 → `--zip`). 스크립트 옆에 번들(`.claude-plugin/marketplace.json`)이 있으면(압축 푼 zip 안에서 실행) 그 번들을 설치하고 받기·3단계를 생략한다 |
 | 3. 검증 | `SHA256SUMS.txt`와 zip 해시 비교. 다르면 중단. `--zip`은 같은 폴더의 `SHA256SUMS.txt`(또는 `--sums <파일>`)가 없으면 중단 |
 | 4. 풀기 | 임시 폴더에 풀고 구조(`my-mods/.claude-plugin/marketplace.json`) 확인 |
 | 5. 교체 | `current/` → `previous/`로 옮기고 새 버전을 `current/`로. 실패하면 `previous/`를 되돌린다. `current/`·`previous/` 는 표식(`.claude-plugin/marketplace.json`)이 있을 때만 바꾸거나 지우고, 없으면 건드리지 않고 중단한다(`--dir` 을 잘못 줘도 사용자 파일을 잃지 않게). 삭제는 설치 폴더 바로 아래 항목만 한다 |
@@ -216,9 +216,9 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 
 | bash | PowerShell | 의미 |
 |---|---|---|
-| `--version v1.4.0` | `-Version v1.4.0` | 특정 버전 설치(기본: 최신) |
+| `--version v1.0.0` | `-Version v1.0.0` | 특정 버전 설치(기본: 최신) |
 | `--plugins qhud,pinboard` | `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
-| `--zip ./my-mods-v1.4.0.zip` | `-Zip .\my-mods-v1.4.0.zip` | 이미 받은 zip으로 설치(같은 폴더의 `SHA256SUMS.txt` 필요) |
+| `--zip ./my-mods-v1.0.0.zip` | `-Zip .\my-mods-v1.0.0.zip` | 이미 받은 zip으로 설치(같은 폴더의 `SHA256SUMS.txt` 필요) |
 | `--sums <파일>` | `-Sums <파일>` | `SHA256SUMS.txt`가 zip 과 다른 위치일 때 |
 | `--dir <경로>` | `-Dir <경로>` | 설치 폴더 변경 |
 | `--rollback` | `-Rollback` | `current/` 와 `previous/` 를 맞바꾸고, 이미 설치된 플러그인만 `claude plugin update`(설치 안 된 것은 설치하지 않음. `--plugins` 를 주면 그 목록은 설치도 한다) |
@@ -227,7 +227,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 
 옵션 규칙(두 스크립트 공통, 어기면 중단):
 - `--rollback` 과 `--uninstall` 은 함께 못 쓴다. 둘 다 `--zip`·`--version`·`--sums` 와 함께 못 쓴다(설치에만 적용). `--uninstall` 은 `--plugins` 와 함께 못 쓴다(전부 제거. 하나만 지우려면 `claude plugin uninstall <이름>@my-mods`). `--sums` 는 `--zip` 없이 못 쓴다.
-- `--version` 은 `v1.4.0` 또는 `1.4.0`(`-rc.1` 같은 접미 허용) 형식만 받고, `v` 가 없으면 붙인다.
+- `--version` 은 `v1.0.0` 또는 `1.4.0`(`-rc.1` 같은 접미 허용) 형식만 받고, `v` 가 없으면 붙인다.
 - `--dir` 은 절대 경로로 바꾸며 홈 폴더, 루트(Windows 는 드라이브 루트), 설정 폴더 자체(`CLAUDE_CONFIG_DIR` 또는 `~/.claude`)를 거부한다(sh 은 심볼릭 링크로 그곳에 닿는 경로와 `..` 이 든 경로도 거부). 표식이 없는 `current/`·`previous/` 는 건드리지 않는다.
 - `--zip`/`--version` 을 주면 스크립트 옆 번들보다 우선한다(다운로드·지정 zip 을 설치). 스크립트 옆 번들을 설치할 때는 체크섬 단계를 생략하고 그렇다고 출력한다.
 - 롤백 후 플러그인은 `plugin update` 만 한다. `plugin update` 가 낮은 버전으로도 내려가는 것은 확인됐다(2026-10-17, 10장).
@@ -246,7 +246,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 **Windows WSL**
 - WSL 안에서 실행하는 Claude Code는 Windows 쪽과 **설정 폴더(`~/.claude`)가 완전히 따로**다. Windows에 설치했다고 WSL에서 보이지 않는다. Claude Code를 쓰는 환경마다 각각 설치해야 한다.
 - WSL에서는 `install.sh`를 쓴다. 설치 폴더는 리눅스 쪽(`~/.claude/claude-mods`)에 둔다. `/mnt/c/...` 아래에 두면 파일 접근이 느리고 권한이 꼬인다.
-- Windows에서 받은 zip을 쓸 때만 `--zip /mnt/c/Users/<이름>/Downloads/my-mods-v1.4.0.zip`처럼 경로를 넘긴다.
+- Windows에서 받은 zip을 쓸 때만 `--zip /mnt/c/Users/<이름>/Downloads/my-mods-v1.0.0.zip`처럼 경로를 넘긴다.
 - 스크립트는 `/proc/version`에 `microsoft`가 있으면 WSL로 판단하고, 위 내용을 한 줄로 안내한다.
 
 **Linux**

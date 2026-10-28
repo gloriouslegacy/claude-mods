@@ -81,8 +81,6 @@ Off with `pinboard.deliver` = `false`.
 
 ### agent-flow — main agent and subagents in one pane
 
-The command was `/agent-flow` before my-mods v1.2.0. The old name was removed in v1.3.0 (agent-flow 0.5.0); use `/aflow`.
-
 `/aflow` opens a pane (it also opens by itself when a session starts; turn that off with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session:
 
 ```
@@ -139,14 +137,12 @@ Run from the unzipped release, the script installs that bundle (no download, no 
 
 The release carries four installer files at the top of `my-mods/`: `install.sh` + `install-lib.sh` and `install.ps1` + `install-lib.ps1`. Keep each pair together; the entry file looks for its lib beside itself, in the bundle, and in the install folder's `current` / `previous`.
 
-**Upgrading from v1.2.x:** the default install folder moved (it was `%LOCALAPPDATA%\claude-mods` on Windows and `~/.local/share/claude-mods` elsewhere). Install once with the new script: the `my-mods` marketplace is registered again at the new place, and your plugins and `/config` values stay. Delete the old folder by hand only **after** that install; removing it first breaks the marketplace. v1.2.x installs have no lib file, so `--rollback` and `--uninstall` run without a file (`curl | sh`, `irm | iex`) need v1.3.0 installed once, or must be run from an unzipped v1.3.0 release folder.
-
 If you sync `~/.claude` between machines (dotfiles), the install folder travels with it. The marketplace path is absolute, so it breaks on another PC: install on each PC, and consider leaving `claude-mods` out of the sync.
 
 | Option (bash / PowerShell) | Does |
 |---|---|
 | `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all four) |
-| `--version v1.4.0` / `-Version v1.4.0` | A given release (default: latest) |
+| `--version v1.0.0` / `-Version v1.0.0` | A given release (default: latest) |
 | `--zip <file>` `--sums <file>` / `-Zip <file>` `-Sums <file>` | A zip you already have; `SHA256SUMS.txt` must sit beside it, or pass `--sums` |
 | `--dir <path>` / `-Dir <path>` | Install folder (not your home folder, a drive root or the Claude config folder itself) |
 | `--rollback` / `-Rollback` | Go back to the previous install |
@@ -275,3 +271,7 @@ Use it to see which agents are worth moving to a cheaper model.
 claude plugin validate ./<mod>
 claude plugin test ./<mod>
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).

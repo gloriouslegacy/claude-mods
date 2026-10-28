@@ -3,7 +3,7 @@
   "version": "0.18.0",
   "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
   "author": {
-    "name": "kimjaewoo"
+    "name": "gloriouslegacy"
   },
   "types": "./types/index.d.ts",
   "userConfig": {

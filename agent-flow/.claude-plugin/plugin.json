@@ -3,7 +3,7 @@
   "version": "0.6.0",
   "description": "A pane (/aflow) with the main agent and every subagent: status, model, tokens, tool calls, what each is doing now with slow/thinking/silent signs, [+] details, unlisted loops, main_Diff / sub_Diff; /aflow stats sums the logged runs by agent and model",
   "author": {
-    "name": "kimjaewoo"
+    "name": "gloriouslegacy"
   },
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "description": "Pinned notes above the prompt: /pin a note (! important, !! interrupt Claude), check it off or remove it with ×; each new pin reaches Claude at once; kept per folder",
   "author": {
-    "name": "kimjaewoo"
+    "name": "gloriouslegacy"
   },
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "description": "A learning-note pane for every file Claude changes: the request, why it changed, the diff, an easy explanation and a quiz",
   "author": {
-    "name": "kimjaewoo"
+    "name": "gloriouslegacy"
   },
   "types": "./types/index.d.ts",
   "userConfig": {
