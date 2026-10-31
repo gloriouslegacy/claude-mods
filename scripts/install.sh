@@ -19,10 +19,10 @@
 
 REPO="gloriouslegacy/claude-mods"
 MARKET="my-mods"
-ALL_PLUGINS="qhud change-tutor pinboard agent-flow"
+ALL_PLUGINS="qhud pinboard agent-flow"
 # RETIRED is read by install-lib.sh
 # shellcheck disable=SC2034
-RETIRED="blast-radius replay-theater"
+RETIRED="blast-radius replay-theater change-tutor"
 MIN_CLAUDE="2.1.287"
 
 say() { printf '%s\n' "install: $*"; }

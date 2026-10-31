@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 개요
 
-`my-mods` marketplace: Claude Code 함수 훅(function hooks) 플러그인 4개 — `qhud`(상태 줄), `change-tutor`(변경 학습 노트 pane), `pinboard`(`/pin` 메모), `agent-flow`(main·subagent pane). Claude Code 2.1.287 이상 필요. 사용자 안내는 `README.md`(영문)·`README.ko.md`(한국어), 배포 체계 전체는 `docs/release/RELEASE.md`.
+`my-mods` marketplace: Claude Code 함수 훅(function hooks) 플러그인 3개 — `qhud`(상태 줄), `pinboard`(`/pin` 메모), `agent-flow`(main·subagent pane). Claude Code 2.1.287 이상 필요. 사용자 안내는 `README.md`(영문)·`README.ko.md`(한국어), 배포 체계 전체는 `docs/release/RELEASE.md`.
 
 ## 명령
 
@@ -18,12 +18,12 @@ claude --plugin-dir ./<mod>        # 한 세션에만 로드해 수동 확인; �
 
 - `check.sh` 는 `claude`·`node` 가 PATH 에 있어야 한다. package.json·tsconfig·빌드 단계는 없다 — TypeScript 는 호스트(Claude Code)가 직접 컴파일한다.
 
-## 구조 (4개 플러그인 공통)
+## 구조 (3개 플러그인 공통)
 
 - `<mod>/.claude-plugin/plugin.json`: 이름·버전·`types`·`userConfig`(사용자가 `/config` 에서 바꾸는 키, 기본값 포함).
 - `<mod>/hooks/hooks.json` 은 `{ "modules": ["./register.tsx"] }` 뿐이다. `register.tsx` 가 `register: Register = (on, options) => …` 를 export 하고, `on(...)` 으로 엔진 이벤트를 구독하며 `$.command.register(...)` 로 슬래시 명령을 등록한다.
 - **호스트 API 를 만지는 파일은 `register.tsx` 하나.** 나머지 `hooks/*.ts` 는 순수 함수(문구·계산·파싱)이고 `'claude-code'` 를 import 하지 않는다. 로직은 순수 모듈에 두고 `register.tsx` 는 연결만 한다.
-- 호스트 API: `import { atom, read, update } from 'claude-code'`, 타입 `EngineInterface`·`Register`. 세션 상태는 `atom({ plugin, key } as const, initial)`, 세션을 넘는 저장은 `$.store.get/set`(agent-flow `log`, pinboard `pins:<folder>`, change-tutor 노트 목록 — 업데이트 후에도 유지돼야 하는 사용자 데이터).
+- 호스트 API: `import { atom, read, update } from 'claude-code'`, 타입 `EngineInterface`·`Register`. 세션 상태는 `atom({ plugin, key } as const, initial)`, 세션을 넘는 저장은 `$.store.get/set`(agent-flow `log`, pinboard `pins:<folder>` — 업데이트 후에도 유지돼야 하는 사용자 데이터).
 - `<mod>/types/index.d.ts` 는 손으로 쓴 파일: 도메인 타입 + 파일 끝의 `declare module 'claude-code' { … }`(atom 값의 `PluginState` 선언만). 호스트 API 는 엔진 타입이 이미 선언하므로 다시 선언하지 않는다(충돌). atom 키를 더하면 여기에 더한다.
 - `<mod>/.claude-plugin/types/` 는 엔진이 머신마다 생성하는 파일이다. 커밋하지 않는다(`.gitignore`).
 - 테스트: `<mod>/tests/<mod>.test.tsx`, `import { expect, mock, test } from 'claude-code/testing'`. 호스트 없이 `../hooks/*` 순수 모듈을 직접 import 해 검증한다.

@@ -4,7 +4,7 @@
     "name": "gloriouslegacy"
   },
   "metadata": {
-    "description": "Four Claude Code mods: qhud, change-tutor, pinboard, agent-flow"
+    "description": "Three Claude Code mods: qhud, pinboard, agent-flow"
   },
   "plugins": [
     {
@@ -12,12 +12,6 @@
       "source": "./qhud",
       "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
       "version": "0.18.0"
-    },
-    {
-      "name": "change-tutor",
-      "source": "./change-tutor",
-      "description": "A learning-note pane for every file Claude changes: the request, why it changed, the diff, an easy explanation and a quiz",
-      "version": "0.4.0"
     },
     {
       "name": "pinboard",
@@ -29,7 +23,7 @@
       "name": "agent-flow",
       "source": "./agent-flow",
       "description": "A pane (/aflow) with the main agent and every subagent: status, model, tokens, tool calls, what each is doing now with slow/thinking/silent signs, [+] details, unlisted loops, main_Diff / sub_Diff; /aflow stats sums the logged runs by agent and model",
-      "version": "0.6.0"
+      "version": "0.6.1"
     }
   ]
 }

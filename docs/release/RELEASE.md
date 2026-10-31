@@ -10,12 +10,11 @@
 
 ## 1. 무엇을 배포하나
 
-Claude Code mod(함수 훅 플러그인) 4개를 하나의 marketplace(`my-mods`)로 묶어 배포한다.
+Claude Code mod(함수 훅 플러그인) 3개를 하나의 marketplace(`my-mods`)로 묶어 배포한다.
 
 | 플러그인 | 폴더 | 하는 일 |
 |---|---|---|
 | qhud (이전 tcw) | `qhud/` | 프롬프트 위·아래 상태 줄: 모델·effort·fallback, git, 컨텍스트 사용률, 5시간/주간/모델별 주간 한도, 캐시 만료 경고 |
-| change-tutor | `change-tutor/` | 메인 에이전트가 고친 파일마다 학습 노트(쉬운 설명·퀴즈). 기본 꺼짐 |
 | pinboard | `pinboard/` | `/pin` 고정 메모, 작업 중인 Claude에게 즉시 전달, `!!`로 작업 중단 후 전달 |
 | agent-flow | `agent-flow/` | `/aflow` 패널: 메인·서브에이전트 상태, 모델, 토큰, 멈춤 경고, diff, 실행 통계 |
 
@@ -46,7 +45,7 @@ Claude Code mod(함수 훅 플러그인) 4개를 하나의 marketplace(`my-mods`
 claude-mods/                          ← 저장소 루트
 ├── .claude/CLAUDE.md                 ← Claude Code 작업 안내(zip 제외)
 ├── .claude-plugin/
-│   └── marketplace.json              ← marketplace 정의(이름 my-mods, 플러그인 4개와 각 버전)
+│   └── marketplace.json              ← marketplace 정의(이름 my-mods, 플러그인 3개와 각 버전)
 ├── qhud/                             ← 이전 이름 tcw(token-cache-weather/), 옮기는 법은 docs/migration/RENAME_TCW_TO_QHUD.md
 │   ├── .claude-plugin/plugin.json    ← 이름·버전·설명·userConfig
 │   ├── hooks/
@@ -56,12 +55,11 @@ claude-mods/                          ← 저장소 루트
 │   ├── types/index.d.ts              ← 도메인 타입 + 호스트 API(`claude-code`) ambient 선언(손으로 씀)
 │   ├── tests/<mod>.test.tsx          ← claude plugin test 대상(한 장)
 │   └── CLAUDE.md                     ← Claude Code 작업 안내(zip 제외)
-├── change-tutor/                     ← 같은 구조
 ├── pinboard/                         ← 같은 구조
 ├── agent-flow/                       ← 같은 구조
 ├── scripts/
 │   ├── CLAUDE.md                     ← [있음] Claude Code 작업 안내(zip 제외)
-│   ├── check.sh                      ← [있음] 이름·버전 일치 + 복사본 4쌍 본문 비교(목록은 docs/structure.md) + validate/test
+│   ├── check.sh                      ← [있음] 이름·버전 일치 + 복사본 1쌍 본문 비교(목록은 docs/structure.md) + validate/test
 │   ├── install.sh                    ← [있음] Linux / macOS / WSL 진입 파일(인자·번들 확보·설치 폴더 가드)
 │   ├── install-lib.sh                ← [있음] install.sh 의 lib(교체·복구·marketplace·플러그인·롤백·제거)
 │   ├── install.ps1                   ← [있음] Windows(PowerShell 5.1 / 7) 진입 파일
@@ -95,7 +93,6 @@ my-mods-v1.0.0.zip
 └── my-mods/
     ├── .claude-plugin/marketplace.json
     ├── qhud/
-    ├── change-tutor/
     ├── pinboard/
     ├── agent-flow/
     ├── install.sh             [있음] release.yml 이 scripts/ 에서 복사(네 파일 중 하나라도 없으면 실패). 실행 권한은 이 파일만
@@ -109,7 +106,7 @@ my-mods-v1.0.0.zip
     └── CHANGELOG.md
 ```
 
-플러그인 4개 모두에서 `*/tests`, `*/.claude-plugin/types`(엔진이 만드는 파일), `*/node_modules`, `*/CLAUDE.md`, `*/CLAUDE.local.md`를 뺀다(release.yml의 `tar --exclude`). `.github/`, `.claude/`, `scripts/check.sh`, `scripts/bump-version.mjs`도 zip에 없다. `docs/` 중 `migration/`만 zip에 들어간다.
+플러그인 3개 모두에서 `*/tests`, `*/.claude-plugin/types`(엔진이 만드는 파일), `*/node_modules`, `*/CLAUDE.md`, `*/CLAUDE.local.md`를 뺀다(release.yml의 `tar --exclude`). `.github/`, `.claude/`, `scripts/check.sh`, `scripts/bump-version.mjs`도 zip에 없다. `docs/` 중 `migration/`만 zip에 들어간다.
 
 **설치 후 사용자 PC의 위치:**
 
@@ -164,7 +161,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 
 | 파일 | 언제 | 하는 일 |
 |---|---|---|
-| `.github/workflows/ci.yml` | PR, `main` push, 매주 월요일 09:17 KST, 수동 | `check` 잡: Claude Code 최신판 설치 → `scripts/check.sh`(이름·버전 일치 + 복사본 4쌍 본문 비교(목록은 `docs/structure.md`) + 플러그인 4개 validate·test) → `VERSION`과 `CHANGELOG.md` 단락 확인. `scripts` 잡: Ubuntu·macOS·Windows에서 정적 검사와 `--dry-run`(PowerShell 7과 5.1 둘 다). `report` 잡: 주간 실행이 실패하면 이슈를 하나 열고, 이미 열려 있으면 댓글을 단다 |
+| `.github/workflows/ci.yml` | PR, `main` push, 매주 월요일 09:17 KST, 수동 | `check` 잡: Claude Code 최신판 설치 → `scripts/check.sh`(이름·버전 일치 + 복사본 1쌍 본문 비교(목록은 `docs/structure.md`) + 플러그인 3개 validate·test) → `VERSION`과 `CHANGELOG.md` 단락 확인. `scripts` 잡: Ubuntu·macOS·Windows에서 정적 검사와 `--dry-run`(PowerShell 7과 5.1 둘 다). `report` 잡: 주간 실행이 실패하면 이슈를 하나 열고, 이미 열려 있으면 댓글을 단다 |
 | `.github/workflows/release.yml` | `v*` 태그 push | `check.sh` → 태그·`VERSION`·`CHANGELOG` 일치 확인 → 설치기 네 파일 존재 확인(하나라도 없으면 실패) → zip 생성(제외 목록은 3장, 설치기 네 파일과 `docs/migration/`도 넣는다) → `SHA256SUMS.txt` → Release 게시(노트는 해당 CHANGELOG 단락, `-rc.N` 같은 태그는 사전 릴리스) |
 | `.github/dependabot.yml` | 매월 | 워크플로가 쓰는 액션 버전 갱신 PR |
 | `.github/pull_request_template.md` | PR 작성 시 | 버전·CHANGELOG·README 두 벌 체크리스트 |
@@ -193,7 +190,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 3. `CHANGELOG.md` 맨 위에 `## v1.0.0 (2026-10-28)` 단락을 쓰고 플러그인별 변경을 적는다. 릴리스 노트로 그대로 쓰인다. CI 는 `## v<VERSION>` 단락의 존재만 확인한다(맨 위인지는 보지 않는다).
 4. 로컬에서 `bash scripts/check.sh` 통과 확인
 5. `git tag v1.0.0 && git push origin v1.0.0` → release 워크플로가 zip과 `SHA256SUMS.txt`를 게시
-6. 최소 한 PC에서 `install.sh` / `install.ps1`로 새 버전을 설치하고, 4개 플러그인이 로드되는지 확인(`/plugin` 목록, `/aflow`, `/pin list`)
+6. 최소 한 PC에서 `install.sh` / `install.ps1`로 새 버전을 설치하고, 3개 플러그인이 로드되는지 확인(`/plugin` 목록, `/aflow`, `/pin list`)
 
 ---
 
@@ -217,7 +214,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 | bash | PowerShell | 의미 |
 |---|---|---|
 | `--version v1.0.0` | `-Version v1.0.0` | 특정 버전 설치(기본: 최신) |
-| `--plugins qhud,pinboard` | `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
+| `--plugins qhud,pinboard` | `-Plugins qhud,pinboard` | 일부만 설치(기본: 3개 전부) |
 | `--zip ./my-mods-v1.0.0.zip` | `-Zip .\my-mods-v1.0.0.zip` | 이미 받은 zip으로 설치(같은 폴더의 `SHA256SUMS.txt` 필요) |
 | `--sums <파일>` | `-Sums <파일>` | `SHA256SUMS.txt`가 zip 과 다른 위치일 때 |
 | `--dir <경로>` | `-Dir <경로>` | 설치 폴더 변경 |
@@ -313,10 +310,9 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 
 | 데이터 | 플러그인 | 저장 위치 | 업데이트 시 |
 |---|---|---|---|
-| 학습 노트(최근 100건) | change-tutor | 플러그인 저장소(`$.store`, Claude 설정 폴더 아래) | 유지 |
 | 고정 메모(폴더별 50개) | pinboard | 같음 | 유지 |
 | 서브에이전트 실행 기록(최근 3000건) | agent-flow | 같음 | 유지 |
-| `/config` 설정값 | 4개 전부 | `~/.claude/settings.json` 의 `pluginConfigs["<id>"].options` | 유지(`--uninstall`·플러그인 uninstall 에서는 지워짐) |
+| `/config` 설정값 | 3개 전부 | `~/.claude/settings.json` 의 `pluginConfigs["<id>"].options` | 유지(`--uninstall`·플러그인 uninstall 에서는 지워짐) |
 
 저장 위치(확인됨, 2026-10-17, Claude Code 2.1.302, `CLAUDE_CONFIG_DIR` 격리 실험):
 - 플러그인 본체: `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` 로 복사된다.
@@ -378,7 +374,7 @@ qhud의 모델별 주간 한도는 공식 문서에 없는 계정 사용량 엔�
 README는 영문과 한국어 두 벌이다. 화면에 보이는 문구는 영문으로 통일했으므로, 기능을 바꾸면 두 README의 예시 화면을 함께 고친다. PR 템플릿에 "README.md / README.ko.md 둘 다 반영했나" 체크 항목을 둔다.
 
 ### 9.10 이전 버전 사용자 정리
-blast-radius와 replay-theater는 이 묶음에서 빠졌다. 예전에 설치한 PC에는 남아 있을 수 있으므로, 설치 스크립트가 이 둘이 설치돼 있으면 제거 명령을 안내한다(자동 삭제는 하지 않는다).
+blast-radius, replay-theater, change-tutor(v2.0.0)는 이 묶음에서 빠졌다. 예전에 설치한 PC에는 남아 있을 수 있으므로, 설치 스크립트가 이 셋이 설치돼 있으면 제거 명령을 안내한다(자동 삭제는 하지 않는다). change-tutor 는 업데이트 뒤 `/plugin` 에 `failed to load` 로 남으므로 [docs/migration/REMOVE_CHANGE_TUTOR.md](../migration/REMOVE_CHANGE_TUTOR.md) 를 링크한다.
 
 옛 이름 `tcw@my-mods`는 6.1의 7단계에서 제거 후 qhud 를 설치한다. `/tcw-usage` 는 my-mods v1.2.0 에서 제거했다.
 
@@ -398,4 +394,4 @@ blast-radius와 replay-theater는 이 묶음에서 빠졌다. 예전에 설치�
 - [ ] 버전이 오르는 `marketplace update` + `plugin update` 뒤에도 `/config` 설정값이 유지되는지 확인(같은 버전에서만 확인함)
 - [ ] 5.1 의 토큰 다운로드에서 GitHub 가 저장소 밖 주소로 리다이렉트할 때 `Authorization` 헤더가 넘어가지 않는지 확인(스크립트는 리다이렉트를 직접 풀고 토큰 없이 받는다)
 - [ ] Linux/macOS 에서 위 저장 위치(8장) 경로가 Windows 와 같은지 비교
-- [ ] Claude Code 최신 버전에서 4개 플러그인 로드 확인
+- [ ] Claude Code 최신 버전에서 3개 플러그인 로드 확인

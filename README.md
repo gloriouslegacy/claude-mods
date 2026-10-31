@@ -1,6 +1,6 @@
 # my-mods
 
-Four Claude Code mods (plugins of function hooks). Requires **Claude Code 2.1.287 or later**.
+Three Claude Code mods (plugins of function hooks). Requires **Claude Code 2.1.287 or later**.
 Korean guide: [README.ko.md](README.ko.md)
 
 ---
@@ -17,8 +17,6 @@ Korean guide: [README.ko.md](README.ko.md)
 | `/pin clear` | `/pin clear` | Remove every done pin |
 | `/pin list` | `/pin list` | Print the board |
 | `/pin` | `/pin` | Fold or unfold the board |
-| `/change-tutor` | `/change-tutor` | Open the Change Notes pane |
-| `/change-tutor on` / `off` | `/change-tutor on` | Start / stop noting changes for this session (change-tutor is off by default) |
 | `/aflow` | `/aflow` | Open the Agent flow pane (main and subagents: models, tokens, calls, what each does, diffs) |
 | `/aflow text` | `/aflow text` | Print the agent tree as text |
 | `/aflow stats [days]` | `/aflow stats 30` | Sum the logged subagent runs by agent and model (default 7 days) |
@@ -50,12 +48,6 @@ With `qhud.layout` = `band` the same two lines sit above the prompt. With `qhud.
 | `0% (2d 11h)` | A model-specific weekly window, unnamed and always first; shown only for models the account has a separate cap on, as `/usage` shows it (one per model that has its own cap). Read from the account usage endpoint at most every 5 minutes, no tokens; off with `qhud.plan` = `false`. `/qhud-usage` reads the endpoint now and shows what it answered |
 
 Refreshes every 15 seconds and whenever a response arrives. Shows a toast once, 5 minutes before the prompt cache expires (1 minute for a 5-minute cache). **Uses no tokens**: it only reads figures the engine already has.
-
-### change-tutor — Change Notes pane
-
-**Off by default.** Turn it on with `change-tutor.enabled` in `/config`, or for one session with `/change-tutor on`.
-
-Every file Claude creates or edits (Edit / Write) becomes a note with: the file and `+added -removed · time`, **🙋 Request** (your prompt for that turn), **🤔 Why it changed** (what Claude said right before the change) and the diff. From a note you can ask for **💡 Explain simply** or a four-choice **❓ Quiz**. Only the main agent's changes are noted; subagents' changes are in agent-flow (`sub_Diff`). Notes are kept across sessions (latest 100). The status line shows `📘 N change notes`.
 
 ### pinboard — notes pinned above the prompt
 
@@ -133,7 +125,7 @@ Expand-Archive my-mods-*.zip -DestinationPath .
 powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 ```
 
-Run from the unzipped release, the script installs that bundle (no download, no checksum step). Run it on its own (with `gh` logged in or `GITHUB_TOKEN` set) and it downloads the latest release and checks it against `SHA256SUMS.txt`. It installs all four plugins in user scope, puts the files in `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods` (on Windows `%USERPROFILE%\.claude\claude-mods`), and registers the `my-mods` marketplace from there. WSL has its own `~/.claude`, separate from Windows: install in each environment you use.
+Run from the unzipped release, the script installs that bundle (no download, no checksum step). Run it on its own (with `gh` logged in or `GITHUB_TOKEN` set) and it downloads the latest release and checks it against `SHA256SUMS.txt`. It installs all three plugins in user scope, puts the files in `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods` (on Windows `%USERPROFILE%\.claude\claude-mods`), and registers the `my-mods` marketplace from there. WSL has its own `~/.claude`, separate from Windows: install in each environment you use.
 
 The release carries four installer files at the top of `my-mods/`: `install.sh` + `install-lib.sh` and `install.ps1` + `install-lib.ps1`. Keep each pair together; the entry file looks for its lib beside itself, in the bundle, and in the install folder's `current` / `previous`.
 
@@ -141,12 +133,12 @@ If you sync `~/.claude` between machines (dotfiles), the install folder travels 
 
 | Option (bash / PowerShell) | Does |
 |---|---|
-| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all four) |
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all three) |
 | `--version v1.0.0` / `-Version v1.0.0` | A given release (default: latest) |
 | `--zip <file>` `--sums <file>` / `-Zip <file>` `-Sums <file>` | A zip you already have; `SHA256SUMS.txt` must sit beside it, or pass `--sums` |
 | `--dir <path>` / `-Dir <path>` | Install folder (not your home folder, a drive root or the Claude config folder itself) |
 | `--rollback` / `-Rollback` | Go back to the previous install |
-| `--uninstall` / `-Uninstall` | Remove the plugins, the marketplace and the install folder; your notes, pins and run logs (data) are kept, but your `/config` values are erased |
+| `--uninstall` / `-Uninstall` | Remove the plugins, the marketplace and the install folder; your pins and run logs (data) are kept, but your `/config` values are erased |
 | `--dry-run` / `-DryRun` | Print what would be done, change nothing |
 
 ### Manual install
@@ -156,20 +148,19 @@ Unzip the release to a folder you will keep, e.g. `C:\Users\<you>` or `~`. It cr
 ```bash
 claude plugin marketplace add ./
 claude plugin install qhud@my-mods --scope user
-claude plugin install change-tutor@my-mods --scope user
 claude plugin install pinboard@my-mods --scope user
 claude plugin install agent-flow@my-mods --scope user
 ```
 
 - `--scope user` loads them in every project, in the terminal and in the desktop app's Code tab. Install only the ones you want.
-- An "option not yet set" note at install is fine: defaults apply. To set them up front, add `--config ttl=1h` to the qhud install (qhud's key) or `--config model=haiku` to the change-tutor install (change-tutor's key), e.g. `claude plugin install change-tutor@my-mods --scope user --config model=haiku`.
+- An "option not yet set" note at install is fine: defaults apply. To set them up front, add `--config ttl=1h` to the qhud install (qhud's key), e.g. `claude plugin install qhud@my-mods --scope user --config ttl=1h`.
 - The plugins are read straight from this folder: **do not move or delete it**. After editing a file, run `/reload-plugins`.
 
 Other ways to load them:
 
 ```bash
 # one session only
-claude --plugin-dir ./qhud --plugin-dir ./change-tutor --plugin-dir ./pinboard --plugin-dir ./agent-flow
+claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow
 ```
 
 ```json
@@ -183,7 +174,7 @@ Upgrading from a version with **tcw**? It is now **qhud**: see [docs/migration/R
 
 Remove: run the script with `--uninstall` (`-Uninstall` on Windows). (Manual install: `claude plugin uninstall <name>@my-mods`.)
 
-blast-radius and replay-theater are no longer part of this set. If you installed them before, remove them with `claude plugin uninstall blast-radius@my-mods` and `claude plugin uninstall replay-theater@my-mods`.
+blast-radius, replay-theater and change-tutor (removed in v2.0.0) are no longer part of this set. If you installed them before, remove them with `claude plugin uninstall blast-radius@my-mods`, `claude plugin uninstall replay-theater@my-mods` and `claude plugin uninstall change-tutor@my-mods --scope user`. For change-tutor, see [docs/migration/REMOVE_CHANGE_TUTOR.md](docs/migration/REMOVE_CHANGE_TUTOR.md).
 
 ---
 
@@ -204,27 +195,6 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 | `qhud.ttl` | `1h`, `5m` — the prompt-cache TTL the expiry toast counts from | `1h` |
 
 `/qhud-usage` reads the account usage endpoint right away and prints what it answered: use it when the model-specific window looks wrong or missing.
-
-### change-tutor
-
-- While noting is on, the pane opens by itself on the first change of a session; open it any time with **`/change-tutor`** (earlier notes stay readable when it is off).
-- Keys work while the pane has focus (click it, or `ctrl+x tab`):
-
-| Key | Action |
-|---|---|
-| `h` / `l` | Previous / next note |
-| `e` | 💡 Explain simply |
-| `q` | ❓ Quiz (then `1`–`4` to answer) |
-| `v` | ⤢ Show all / ⤡ Collapse the diff |
-| `c` | Copy diff |
-
-- Tabs **This session** / **All notes** and **Latest** are buttons.
-- Explain and Quiz call a model only when pressed (tokens are spent then).
-
-| Setting (`/config`) | Values | Default |
-|---|---|---|
-| `change-tutor.enabled` | `true`, `false` — note the main agent's changes and show the count in the status line | `false` |
-| `change-tutor.model` | `haiku`, `sonnet`, `opus` | `haiku` |
 
 ### pinboard
 

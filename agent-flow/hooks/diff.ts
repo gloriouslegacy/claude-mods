@@ -1,4 +1,4 @@
-// agent-flow: diff helpers (shared with change-tutor) — normalise the tools' patches, count changes, and cut a
+// agent-flow: diff helpers — normalise the tools' patches, count changes, and cut a
 // display copy whose hunk headers always match their lines (a Code diff that does not
 // parse is refused by the engine, so counts are recomputed after every cut).
 import type { Hunk } from '../types'

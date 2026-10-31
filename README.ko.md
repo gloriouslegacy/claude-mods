@@ -1,6 +1,6 @@
 # my-mods (한국어 안내)
 
-Claude Code 모드(함수 훅 플러그인) 4개입니다. **Claude Code 2.1.287 이상**이 필요합니다. 화면에 표시되는 문구는 모두 영어입니다.
+Claude Code 모드(함수 훅 플러그인) 3개입니다. **Claude Code 2.1.287 이상**이 필요합니다. 화면에 표시되는 문구는 모두 영어입니다.
 
 ---
 
@@ -16,8 +16,6 @@ Claude Code 모드(함수 훅 플러그인) 4개입니다. **Claude Code 2.1.287
 | `/pin clear` | `/pin clear` | 완료된 메모 모두 삭제 |
 | `/pin list` | `/pin list` | 목록 출력 |
 | `/pin` | `/pin` | 보드 접기/펼치기 |
-| `/change-tutor` | `/change-tutor` | Change Notes 패널 열기 |
-| `/change-tutor on` / `off` | `/change-tutor on` | 이번 세션에서 변경 기록 시작 / 중지(change-tutor는 기본 꺼짐) |
 | `/aflow` | `/aflow` | Agent flow 패널 열기(메인·서브에이전트의 모델, 토큰, 호출 수, 지금 하는 일, diff) |
 | `/aflow text` | `/aflow text` | 에이전트 트리를 텍스트로 출력 |
 | `/aflow stats [일수]` | `/aflow stats 30` | 기록된 서브에이전트 실행을 에이전트·모델별로 합산(기본 7일) |
@@ -49,12 +47,6 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 | `0% (2d 11h)` | `/usage`처럼 모델별 주간 한도(이름 없이 맨 앞). 계정에 별도 한도가 있는 모델만 표시. 계정 사용량 엔드포인트를 최대 5분마다 읽음(토큰 사용 없음). `qhud.plan` = `false`로 끔. `/qhud-usage`로 즉시 조회해 응답 확인 |
 
 15초마다, 그리고 응답이 올 때마다 갱신합니다. 화면에는 없지만 프롬프트 캐시 만료 5분 전(5분짜리 캐시는 1분 전)에 알림을 한 번 띄웁니다. 엔진이 이미 가진 수치만 읽으므로 **토큰을 쓰지 않습니다**.
-
-### change-tutor — 변경 학습 노트(Change Notes) 패널
-
-**기본값은 꺼짐입니다.** `/config`의 `change-tutor.enabled`로 켜거나, 이번 세션만 `/change-tutor on`으로 켭니다.
-
-Claude가 파일을 만들거나 고칠 때(Edit / Write)마다 노트가 하나씩 쌓입니다. 노트에는 파일과 `+추가 -삭제 · 시각`, **🙋 Request**(그 턴의 요청), **🤔 Why it changed**(변경 직전에 Claude가 한 말), diff가 담깁니다. 노트마다 **💡 Explain simply**(쉬운 설명)과 4지선다 **❓ Quiz**를 요청할 수 있습니다. 메인 에이전트가 고친 것만 노트로 남기고, 서브에이전트가 고친 내역은 agent-flow(`sub_Diff`)에서 봅니다. 노트는 세션이 바뀌어도 남고 최근 100건까지 보관합니다. 상태줄에 `📘 N change notes`가 표시됩니다.
 
 ### pinboard — 프롬프트 위 고정 메모
 
@@ -132,7 +124,7 @@ Expand-Archive my-mods-*.zip -DestinationPath .
 powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 ```
 
-압축을 푼 릴리스 안에서 실행하면 그 번들을 그대로 설치합니다(다운로드·체크섬 단계 없음). 스크립트만 따로 실행하면(`gh` 로그인 또는 `GITHUB_TOKEN` 필요) 최신 릴리스를 받아 `SHA256SUMS.txt`와 대조한 뒤 설치합니다. 플러그인 4개를 user 범위로 설치하고, 파일은 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`(Windows는 `%USERPROFILE%\.claude\claude-mods`)에 두며, 그 폴더로 `my-mods` marketplace를 등록합니다. WSL은 Windows와 `~/.claude`가 따로이므로 쓰는 환경마다 각각 설치해야 합니다.
+압축을 푼 릴리스 안에서 실행하면 그 번들을 그대로 설치합니다(다운로드·체크섬 단계 없음). 스크립트만 따로 실행하면(`gh` 로그인 또는 `GITHUB_TOKEN` 필요) 최신 릴리스를 받아 `SHA256SUMS.txt`와 대조한 뒤 설치합니다. 플러그인 3개를 user 범위로 설치하고, 파일은 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`(Windows는 `%USERPROFILE%\.claude\claude-mods`)에 두며, 그 폴더로 `my-mods` marketplace를 등록합니다. WSL은 Windows와 `~/.claude`가 따로이므로 쓰는 환경마다 각각 설치해야 합니다.
 
 릴리스의 `my-mods/` 루트에는 설치기 파일이 네 개 있습니다: `install.sh` + `install-lib.sh`, `install.ps1` + `install-lib.ps1`. 짝을 같은 폴더에 함께 두세요. 진입 파일이 lib를 같은 폴더, 번들, 설치 폴더의 `current` / `previous` 순으로 찾습니다.
 
@@ -140,12 +132,12 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 
 | 옵션 (bash / PowerShell) | 동작 |
 |---|---|
-| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 3개 전부) |
 | `--version v1.0.0` / `-Version v1.0.0` | 특정 버전 설치(기본: 최신) |
 | `--zip <파일>` `--sums <파일>` / `-Zip <파일>` `-Sums <파일>` | 이미 받은 zip으로 설치. `SHA256SUMS.txt`가 zip 옆에 있어야 하며, 다른 위치면 `--sums` 지정 |
 | `--dir <경로>` / `-Dir <경로>` | 설치 폴더 변경(홈 폴더·드라이브 루트·Claude 설정 폴더 자체는 거부) |
 | `--rollback` / `-Rollback` | 바로 전 설치로 되돌리기 |
-| `--uninstall` / `-Uninstall` | 플러그인, marketplace, 설치 폴더 제거. 노트·고정 메모·실행 기록(데이터)은 남고 `/config` 설정값은 지워짐 |
+| `--uninstall` / `-Uninstall` | 플러그인, marketplace, 설치 폴더 제거. 고정 메모·실행 기록(데이터)은 남고 `/config` 설정값은 지워짐 |
 | `--dry-run` / `-DryRun` | 할 일만 출력하고 아무것도 바꾸지 않음 |
 
 ### 수동 설치
@@ -155,20 +147,19 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 ```bash
 claude plugin marketplace add ./
 claude plugin install qhud@my-mods --scope user
-claude plugin install change-tutor@my-mods --scope user
 claude plugin install pinboard@my-mods --scope user
 claude plugin install agent-flow@my-mods --scope user
 ```
 
 - `--scope user`로 설치하면 모든 프로젝트, 터미널, 데스크톱 앱 Code 탭에서 로드됩니다. 필요한 것만 설치해도 됩니다.
-- 설치할 때 "option not yet set" 안내가 나와도 기본값으로 동작합니다. 처음부터 지정하려면 qhud 설치에 `--config ttl=1h`(qhud의 키)를, change-tutor 설치에 `--config model=haiku`(change-tutor의 키)를 붙이세요. 예: `claude plugin install change-tutor@my-mods --scope user --config model=haiku`
+- 설치할 때 "option not yet set" 안내가 나와도 기본값으로 동작합니다. 처음부터 지정하려면 qhud 설치에 `--config ttl=1h`(qhud의 키)를 붙이세요. 예: `claude plugin install qhud@my-mods --scope user --config ttl=1h`
 - 플러그인은 이 폴더에서 바로 읽힙니다. **폴더를 옮기거나 지우지 마세요.** 파일을 고친 뒤에는 `/reload-plugins`를 실행하면 반영됩니다.
 
 다른 로드 방법:
 
 ```bash
 # 이번 한 세션만
-claude --plugin-dir ./qhud --plugin-dir ./change-tutor --plugin-dir ./pinboard --plugin-dir ./agent-flow
+claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow
 ```
 
 ```json
@@ -182,7 +173,7 @@ claude --plugin-dir ./qhud --plugin-dir ./change-tutor --plugin-dir ./pinboard -
 
 제거: 스크립트를 `--uninstall`(Windows는 `-Uninstall`)로 실행합니다. (수동 설치: `claude plugin uninstall <이름>@my-mods`)
 
-blast-radius와 replay-theater는 이 묶음에서 빠졌습니다. 예전에 설치했다면 `claude plugin uninstall blast-radius@my-mods`, `claude plugin uninstall replay-theater@my-mods`로 지우세요.
+blast-radius, replay-theater, change-tutor(v2.0.0에서 제거)는 이 묶음에서 빠졌습니다. 예전에 설치했다면 `claude plugin uninstall blast-radius@my-mods`, `claude plugin uninstall replay-theater@my-mods`, `claude plugin uninstall change-tutor@my-mods --scope user`로 지우세요. change-tutor는 [docs/migration/REMOVE_CHANGE_TUTOR.md](docs/migration/REMOVE_CHANGE_TUTOR.md)를 보세요.
 
 ---
 
@@ -203,27 +194,6 @@ blast-radius와 replay-theater는 이 묶음에서 빠졌습니다. 예전에 �
 | `qhud.ttl` | `1h`, `5m` — 캐시 만료 알림의 기준 시간 | `1h` |
 
 `/qhud-usage`는 계정 사용량 엔드포인트를 바로 읽어 응답 내용을 출력합니다. 모델별 한도가 이상하거나 보이지 않을 때 쓰세요.
-
-### change-tutor
-
-- 기록이 켜져 있으면 세션의 첫 변경 때 패널이 자동으로 열립니다. 언제든 **`/change-tutor`**로 열 수 있고, 꺼져 있어도 예전 노트는 볼 수 있습니다.
-- 단축키는 패널에 포커스가 있을 때 동작합니다(패널 클릭 또는 `ctrl+x tab`).
-
-| 키 | 동작 |
-|---|---|
-| `h` / `l` | 이전 / 다음 노트 |
-| `e` | 💡 Explain simply(쉬운 설명) |
-| `q` | ❓ Quiz(이어서 `1`–`4`로 답 선택) |
-| `v` | ⤢ Show all / ⤡ Collapse(diff 펼치기/접기) |
-| `c` | Copy diff(diff 복사) |
-
-- **This session** / **All notes** 탭과 **Latest**는 버튼으로 누릅니다.
-- Explain과 Quiz는 누를 때만 모델을 호출합니다. 그때 토큰이 듭니다.
-
-| 설정(`/config`) | 값 | 기본값 |
-|---|---|---|
-| `change-tutor.enabled` | `true`, `false` — 메인 에이전트 변경을 노트로 남기고 상태줄에 개수 표시 | `false` |
-| `change-tutor.model` | `haiku`, `sonnet`, `opus` | `haiku` |
 
 ### pinboard
 
