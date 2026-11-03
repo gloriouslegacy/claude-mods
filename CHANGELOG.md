@@ -2,6 +2,14 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.2.0 (2026-11-03)
+
+- Changed: pinboard 0.5.0 lists every prompt you send with Enter, idle or while Claude is working, not only mid-turn ones. Both look the same (dimmed `»` rows, click to jump to that turn). Slash commands, notifications and plugin-sent prompts are still not listed.
+- Added: rows show the first line; a row whose prompt is longer has a `[+]` button that unfolds the rest below it (up to 20 lines, 200 characters each), `[-]` folds it back. Session only, like the rows themselves.
+- Changed: the `/config` title of `pinboard.capture` is now `List what you type` (key and value unchanged).
+- Fixed: listing a prompt no longer prints a debug line (`pinboard: pinboard: place marker=…`) in the transcript. Only failures are logged, without the doubled `pinboard:` prefix.
+- Plugins: qhud 0.18.0, pinboard 0.5.0, agent-flow 0.6.1.
+
 ## v2.1.0 (2026-11-03)
 
 - Added: pinboard 0.4.0 lists the prompts you type with Enter while Claude is working (mid-turn) below the pins, dimmed with a `»` marker, numbered separately, each with a `[×]` remove button. The header reads `📌 Pins N · » M`, and the board shows even with 0 pins. Idle prompts, slash commands, notifications and plugin-sent prompts are not listed; the prompt itself is sent unchanged.

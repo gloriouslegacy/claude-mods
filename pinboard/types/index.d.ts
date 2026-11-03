@@ -8,11 +8,15 @@ export type Pin = {
   at: number
 }
 
-/** A prompt the user typed while a turn was running, listed for this session only. */
+/** A prompt the user typed at the prompt (idle or mid-turn), listed for this session only. */
 export type Captured = {
   id: string
-  /** The board line only: the prompt's first line, cleaned and capped (`firstLine`); the full prompt is never kept. */
+  /** The board line: the prompt's first line, cleaned and capped (`firstLine`). */
   text: string
+  /** The prompt's full text, cleaned and capped (`fullLines`); absent when the board line already shows it all. */
+  lines?: string[]
+  /** True while its remaining lines are unfolded under its board row. */
+  open?: true
   at: number
   /** The marker row placed in the transcript at capture (`$.ui.place`), to scroll back to; absent when none was placed. */
   requestId?: string
@@ -27,7 +31,7 @@ declare module 'claude-code' {
       folder: string
       /** True while the board is folded to its header line. */
       folded: boolean
-      /** Prompts typed mid-turn this session, oldest first (never saved to the store). */
+      /** Prompts typed this session, oldest first, with their unfolded state (never saved to the store). */
       captured: Captured[]
     }
   }

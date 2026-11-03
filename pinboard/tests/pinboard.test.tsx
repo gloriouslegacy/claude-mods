@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { CAPTURE_CHARS, JUMP_GONE, KEEP_CAPTURED, addCaptured, delivery, firstLine, header, isCapture, jumpTo, listing, markerId, parse, removeCaptured, withRequestId } from '../hooks/pins'
+import { CAPTURE_CHARS, CAPTURE_LINES, JUMP_GONE, KEEP_CAPTURED, addCaptured, captureOf, delivery, firstLine, fullLines, header, isCapture, jumpTo, listing, markerId, parse, removeCaptured, toggleOpen, withRequestId } from '../hooks/pins'
 
 test('parsing /pin', () => {
   expect(parse('! check the .env keys')).toEqual({ kind: 'add', text: 'check the .env keys', important: true, urgent: false })
@@ -162,9 +162,8 @@ test('!! mid-turn stops the turn and sends the pin as the next prompt at once', 
 })
 
 test('capture helpers: who counts, the cap of 20, removal, the first line', () => {
-  const typed = { text: 'use staging', origin: { kind: 'composer' }, turnId: 't' }
+  const typed = { text: 'use staging', origin: { kind: 'composer' } }
   expect(isCapture(typed)).toBe(true)
-  expect(isCapture({ ...typed, turnId: undefined })).toBe(false)
   expect(isCapture({ ...typed, origin: { kind: 'plugin' } })).toBe(false)
   expect(isCapture({ ...typed, command: { name: 'pin', args: 'x' } })).toBe(false)
   expect(isCapture({ ...typed, isMeta: true })).toBe(false)
@@ -238,9 +237,9 @@ test('a prompt typed mid-turn is listed dimmed with », passes unchanged, folds 
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const composer = { origin: { kind: 'composer' as const }, wait: false }
 
-  // idle input, a slash command and a plugin's prompt are not listed
-  await $.prompt.submit({ ...composer, text: 'start the build' })
+  // a slash command, a hidden prompt and a plugin's prompt are not listed
   await $.prompt.submit({ ...composer, text: '/pin x', command: { name: 'pin', args: 'x' }, turnId: 't' })
+  await $.prompt.submit({ ...composer, text: 'hidden', isMeta: true, turnId: 't' })
   await $.prompt.submit({ text: 'from a plugin', origin: { kind: 'plugin', name: 'other' }, wait: false, turnId: 't' })
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ text: /»/ })).toBeUndefined()
@@ -291,7 +290,7 @@ test('a capture that fails still lets the prompt through unchanged and lists not
   expect(r.drop).toBeUndefined()
   expect(entered).toEqual(['use staging'])
   expect(placed).toEqual([])
-  expect(logs.some(l => l.startsWith('pinboard: capture failed'))).toBe(true)
+  expect(logs.some(l => l.startsWith('capture failed'))).toBe(true)
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ text: /staging/ })).toBeUndefined()
 })
@@ -327,7 +326,6 @@ test('a captured prompt leaves a » #N marker in the transcript, kept on its rec
   const composer = { origin: { kind: 'composer' as const }, wait: false }
 
   // prompts that are not captured place no marker
-  await $.prompt.submit({ ...composer, text: 'start the build' })
   await $.prompt.submit({ ...composer, text: '/pin x', command: { name: 'pin', args: 'x' }, turnId: 't' })
   expect(placed).toEqual([])
 
@@ -371,3 +369,86 @@ for (const fault of ['none', 'throw'] as const) {
     expect(await band.find({ text: '1. use staging' })).toBeDefined()
   })
 }
+
+test('a prompt typed while Claude is idle is listed the same way; commands, hidden and plugin prompts still are not', async ($, on) => {
+  const { entered, placed } = capturing(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  const composer = { origin: { kind: 'composer' as const }, wait: false }
+  await $.prompt.submit({ ...composer, text: '/pin x', command: { name: 'pin', args: 'x' } })
+  await $.prompt.submit({ ...composer, text: 'hidden', isMeta: true })
+  await $.prompt.submit({ text: 'from a plugin', origin: { kind: 'plugin', name: 'other' }, wait: false })
+  expect(placed).toEqual([])
+
+  const r = await $.prompt.submit({ ...composer, text: 'start the build' })
+  expect(r.text).toBe('start the build')
+  expect(entered.at(-1)).toBe('start the build')
+  expect(placed.length).toBe(1)
+  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: '📌 Pins 0 · » 1' })).toBeDefined()
+  expect(await band.find({ text: '1. start the build' })).toBeDefined()
+  expect(await band.find({ text: /hidden|from a plugin|\/pin x/ })).toBeUndefined()
+})
+
+test('full text helpers: 20 lines of 200 characters, " …" when cut, every line cleaned', () => {
+  expect(fullLines('\n\n  first  \n\n  second\n\n\n')).toEqual(['  first', '', '  second'])
+  expect(fullLines('\x1b\x07\r\n \n')).toEqual([])
+  // control and bidi/format characters are replaced on every line, not only the first
+  expect(fullLines('a‮b\nc⁦d​e\nf\x1b[31mg\x07')).toEqual(['a b', 'c d e', 'f [31mg'])
+  const wide = fullLines(`ok\n${'w'.repeat(CAPTURE_CHARS + 10)}`)
+  expect(wide[1]?.length).toBe(CAPTURE_CHARS)
+  expect(wide[1]?.endsWith('w …')).toBe(true)
+  expect(fullLines(`ok\n${'w'.repeat(CAPTURE_CHARS)}`)[1]).toBe('w'.repeat(CAPTURE_CHARS))
+  const many = fullLines(Array.from({ length: CAPTURE_LINES + 5 }, (_, i) => `line ${i + 1}`).join('\n'))
+  expect(many.length).toBe(CAPTURE_LINES)
+  expect(many.at(-1)).toBe(`line ${CAPTURE_LINES} …`)
+  expect(fullLines(Array.from({ length: CAPTURE_LINES }, (_, i) => `line ${i + 1}`).join('\n')).at(-1)).toBe(`line ${CAPTURE_LINES}`)
+
+  // a one-liner keeps no full text; more lines, or a first line that was cut, do
+  expect(captureOf('  just this  ')).toEqual({ text: 'just this' })
+  expect(captureOf('first\nsecond')).toEqual({ text: 'first …', lines: ['first', 'second'] })
+  const long = captureOf('z'.repeat(CAPTURE_CHARS + 1))
+  expect(long.text.endsWith(' …')).toBe(true)
+  expect(long.lines?.length).toBe(1)
+  expect(captureOf('\x1b\r').text).toBe('')
+
+  const list = [{ id: 'a', text: 'x', at: 1 }, { id: 'b', text: 'y', at: 2 }]
+  const opened = toggleOpen(list, 'a')
+  expect(opened[0]?.open).toBe(true)
+  expect(opened[1]?.open).toBeUndefined()
+  expect(toggleOpen(opened, 'a')[0]?.open).toBeUndefined()
+})
+
+test('a longer typed prompt unfolds with [+] and folds back with [-]; /pin folds it away too', async ($, on) => {
+  capturing(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  const composer = { origin: { kind: 'composer' as const }, wait: false }
+  await $.prompt.submit({ ...composer, text: 'one line only' })
+  await $.prompt.submit({ ...composer, text: 'use the staging bucket\nand keep the ‮logs\n\nthen push', turnId: 't' })
+  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const expandKeys = async () => [...JSON.stringify(await band.drawn()).matchAll(/"key":"(capx-[^"]+)"/g)].map(m => m[1] ?? '')
+
+  // only the longer one has a [+]
+  const keys = await expandKeys()
+  expect(keys.length).toBe(1)
+  expect(await band.find({ text: '[+]' })).toBeDefined()
+  expect(await band.find({ text: '2. use the staging bucket …' })).toBeDefined()
+  expect(await band.find({ text: 'and keep the  logs' })).toBeUndefined()
+
+  await band.press({ key: keys[0] ?? '' })
+  expect(await band.find({ text: '[-]' })).toBeDefined()
+  expect(await band.find({ text: '2. use the staging bucket' })).toBeDefined()
+  expect(await band.find({ text: 'and keep the  logs' })).toBeDefined()
+  expect(await band.find({ text: 'then push' })).toBeDefined()
+  expect(await band.find({ text: '1. one line only' })).toBeDefined()
+
+  // /pin folds the board, unfolded lines included; unfolding the board shows them again
+  await $.command.run({ command: 'pin', args: '' })
+  expect(await band.find({ text: 'then push' })).toBeUndefined()
+  await $.command.run({ command: 'pin', args: '' })
+  expect(await band.find({ text: 'then push' })).toBeDefined()
+
+  await band.press({ key: keys[0] ?? '' })
+  expect(await band.find({ text: '[+]' })).toBeDefined()
+  expect(await band.find({ text: 'then push' })).toBeUndefined()
+  expect(await band.find({ text: '2. use the staging bucket …' })).toBeDefined()
+})

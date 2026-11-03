@@ -8,14 +8,15 @@
 //   mid-turn  → appended as a note from you, read at Claude's next step; if the turn ends before
 //               another step reads it, it is submitted as a follow-up prompt then;
 //   !! first  → mid-turn, the running turn is stopped and the pin is submitted at once as your prompt.
-// With `capture` on, prompts you type while a turn runs are listed below the pins for this session:
+// With `capture` on, prompts you type (idle or mid-turn) are listed below the pins for this session:
 //   »  1. use the staging bucket instead                 [×]   (dimmed; never saved, never re-sent)
+//   »  2. then rerun the tests …                    [+]  [×]   ([+] unfolds its remaining lines below it)
 // Each one leaves a dim "» #N" marker row in the transcript; clicking its board row scrolls there.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Captured, Pin } from '../types'
-import { HELP, JUMP_GONE, KEEP_PINS, addCaptured, delivery, firstLine, followUp, header, interrupted, isCapture, jumpTo, listing, markerId, markerLabel, parse, prompted, removeCaptured, storeKey, withRequestId } from './pins'
+import { HELP, JUMP_GONE, KEEP_PINS, addCaptured, captureOf, delivery, followUp, header, interrupted, isCapture, jumpTo, listing, markerId, markerLabel, parse, prompted, removeCaptured, storeKey, toggleOpen, withRequestId } from './pins'
 
 const pins = atom({ plugin: 'pinboard', key: 'pins' } as const, [] as Pin[])
 const folder = atom({ plugin: 'pinboard', key: 'folder' } as const, '')
@@ -83,20 +84,21 @@ async function placeMarker($: EngineInterface, id: string): Promise<string | und
   const marker = markerId(id)
   try {
     const placed = await $.ui.place({ id: marker })
-    $.ui.log(`pinboard: place marker=${marker} isPlaced=${placed.isPlaced} requestId=${placed.requestId ?? '-'}${placed.isPlaced ? '' : ` reason=${placed.reason}`}`)
+    // ui.log shows in the transcript, so only failures are logged; the host adds the plugin name
+    if (!placed.isPlaced) $.ui.log(`place marker=${marker} not placed reason=${placed.reason}`)
     return placed.requestId
   } catch (err) {
     // the record stands without a marker; a click on it then says the turn is out of view
-    $.ui.log(`pinboard: place marker=${marker} failed error=${err instanceof Error ? err.message : String(err)}`)
+    $.ui.log(`place marker=${marker} failed error=${err instanceof Error ? err.message : String(err)}`)
     return undefined
   }
 }
 
-/** Lists a prompt typed mid-turn, then marks its place in the transcript. */
-async function record($: EngineInterface, text: string): Promise<void> {
+/** Lists a typed prompt (its board line, and its full lines when longer), then marks its place in the transcript. */
+async function record($: EngineInterface, typed: Pick<Captured, 'text' | 'lines'>): Promise<void> {
   const at = await $.clock.now()
   const id = `${at}-${Math.random().toString(36).slice(2, 7)}`
-  await update($, captured, list => addCaptured(list, { id, text, at }))
+  await update($, captured, list => addCaptured(list, { id, ...typed, at }))
   const requestId = await placeMarker($, id)
   if (requestId !== undefined) await update($, captured, list => withRequestId(list, id, requestId))
 }
@@ -105,7 +107,7 @@ async function record($: EngineInterface, text: string): Promise<void> {
 async function jump($: EngineInterface, c: Captured): Promise<void> {
   const deny = await jumpTo(c, requestId => $.ui.scroll({ to: { requestId }, block: 'start' }))
   if (deny === undefined) return
-  $.ui.log(`pinboard: jump marker=${markerId(c.id)} requestId=${c.requestId ?? '-'} deny=${deny}`)
+  $.ui.log(`jump marker=${markerId(c.id)} requestId=${c.requestId ?? '-'} deny=${deny}`)
   $.ui.toast(JUMP_GONE)
 }
 
@@ -141,16 +143,16 @@ export const register: Register = (on, options) => {
     return yield* next(e)
   })
 
-  // A prompt typed mid-turn is listed on the board once it has entered; the prompt itself passes unchanged.
+  // A prompt typed at the prompt is listed on the board once it has entered; the prompt itself passes unchanged.
   on('prompt.submit', async ($, e, next) => {
     const result = await next(e)
     if (capture && result.drop === undefined && isCapture(e)) {
       try {
-        const text = firstLine(e.text)
-        if (text !== '') await record($, text)
+        const typed = captureOf(e.text)
+        if (typed.text !== '') await record($, typed)
       } catch (err) {
         // a side effect only: the prompt has entered either way
-        $.ui.log(`pinboard: capture failed error=${err instanceof Error ? err.message : String(err)}`)
+        $.ui.log(`capture failed error=${err instanceof Error ? err.message : String(err)}`)
       }
     }
     return result
@@ -233,17 +235,35 @@ export const register: Register = (on, options) => {
             ))}
         {isFolded
           ? null
-          : typed.map((c, i) => (
-              <Box key={`cap-${c.id}`} flexDirection="row" gap={1}>
-                <Text dimColor>{' » '}</Text>
-                <Box flexGrow={1}>
-                  <Button key={`capgo-${c.id}`} plain dimColor onPress={() => jump($, c)}>
-                    <Text wrap="truncate" dimColor>{`${i + 1}. ${c.text}`}</Text>
-                  </Button>
+          : typed.map((c, i) => {
+              const open = c.open === true && c.lines !== undefined
+              return (
+                <Box key={`capbox-${c.id}`} flexDirection="column">
+                  <Box key={`cap-${c.id}`} flexDirection="row" gap={1}>
+                    <Text dimColor>{' » '}</Text>
+                    <Box flexGrow={1}>
+                      <Button key={`capgo-${c.id}`} plain dimColor onPress={() => jump($, c)}>
+                        <Text wrap={open ? 'wrap' : 'truncate'} dimColor>{`${i + 1}. ${open ? (c.lines?.[0] ?? '').trimStart() : c.text}`}</Text>
+                      </Button>
+                    </Box>
+                    {c.lines === undefined ? null : (
+                      <Button key={`capx-${c.id}`} plain label={open ? '[-]' : '[+]'} onPress={() => update($, captured, l => toggleOpen(l, c.id))} />
+                    )}
+                    <Button key={`caprm-${c.id}`} plain label="[×]" onPress={() => update($, captured, l => removeCaptured(l, c.id))} />
+                  </Box>
+                  {open
+                    ? (c.lines ?? []).slice(1).map((line, j) => (
+                        <Box key={`capline-${c.id}-${j}`} flexDirection="row" gap={1}>
+                          <Text dimColor>{'   '}</Text>
+                          <Box flexGrow={1}>
+                            <Text dimColor>{line === '' ? ' ' : line}</Text>
+                          </Box>
+                        </Box>
+                      ))
+                    : null}
                 </Box>
-                <Button key={`caprm-${c.id}`} plain label="[×]" onPress={() => update($, captured, l => removeCaptured(l, c.id))} />
-              </Box>
-            ))}
+              )
+            })}
         {below}
       </Box>
     )
