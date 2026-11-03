@@ -2,6 +2,14 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.1.0 (2026-11-03)
+
+- Added: pinboard 0.4.0 lists the prompts you type with Enter while Claude is working (mid-turn) below the pins, dimmed with a `»` marker, numbered separately, each with a `[×]` remove button. The header reads `📌 Pins N · » M`, and the board shows even with 0 pins. Idle prompts, slash commands, notifications and plugin-sent prompts are not listed; the prompt itself is sent unchanged.
+- Added: each captured row also leaves a dim `» #N` marker line in the transcript; clicking the row's text scrolls the conversation to it (`[×]` still removes). If the marker is gone (e.g. after compaction outside fullscreen), a toast says the turn is no longer in view and the row is kept. Use Claude Code's `Jump to bottom (ctrl+End)` to return to the latest turn. Prompts that are only control characters are not listed.
+- Session only: never saved to the folder store, gone when the session ends, latest 20 (first line, cut at 200 characters). `/pin` (fold) hides them too; `/pin done/undo/rm N` and `/pin clear` apply to pins only.
+- New setting `pinboard.capture` (`true`/`false`, default `true`). It is on by default, so the dimmed rows appear after updating; turn off with `pinboard.capture` = `false` in `/config`.
+- Plugins: qhud 0.18.0, pinboard 0.4.0, agent-flow 0.6.1.
+
 ## v2.0.0 (2026-10-31)
 
 - Removed: the change-tutor plugin, with no replacement. Removing a plugin is a major change.

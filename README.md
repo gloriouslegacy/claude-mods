@@ -61,6 +61,8 @@ Each new pin is also **sent to Claude at once**, and `/pin` runs even while Clau
 
 Off with `pinboard.deliver` = `false`.
 
+The board also lists the prompts you type with Enter while Claude is working (mid-turn), below the pins: dimmed, marked `»`, numbered separately from pins, each with a `[×]` button. Each one also leaves a dim `» #N` marker line in the transcript; click the row's text to scroll the conversation to that marker (`[×]` still removes). If the marker is gone (e.g. after compaction outside fullscreen), a toast says the turn is no longer in view and the row is kept. To get back to the latest turn, use Claude Code's own `Jump to bottom (ctrl+End)`. Idle prompts, slash commands (including `/pin`), notifications, plugin-sent prompts and prompts that are only control characters are not listed. The prompt is sent to Claude unchanged, and the list is not sent again. It lives in the session only (never saved to the folder, gone when the session ends, latest 20). On by default; turn off with `pinboard.capture` = `false` in `/config`.
+
 | Command | Does |
 |---|---|
 | `/pin <note>`, `/pin ! <note>` | Pin a note (important with `!`) and send it to Claude |
@@ -202,10 +204,12 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 - Click `[✓]` / `[↺]` / `[×]` on a row, or focus the band with `ctrl+x tab` and move to the button. `[Hide]` / `[Show]` folds the board to its header line.
 - A new pin reaches Claude at once: when idle it is sent as your prompt and Claude starts on it; mid-turn it is read at Claude's next step (or sent as a prompt when the turn ends, if no step read it). Checking off or removing a pin is not sent.
 - Pins are saved per folder (latest 50) and come back in any new session started in that folder.
+- Prompts you send with Enter while Claude is working are listed below the pins, dimmed with a `»` marker and numbered separately, each with a `[×]` to remove it. The header reads `📌 Pins N · » M`. `/pin` (fold) hides them too, and a new one does not unfold a folded board. `/pin done/undo/rm N` and `/pin clear` apply to pins only. They are kept for the session only (latest 20; first line, cut at 200 characters).
 
 | Setting (`/config`) | Values | Default |
 |---|---|---|
 | `pinboard.deliver` | `true`, `false` — send each new pin to Claude | `true` |
+| `pinboard.capture` | `true`, `false` — list prompts typed mid-turn below the pins | `true` |
 
 ### agent-flow
 

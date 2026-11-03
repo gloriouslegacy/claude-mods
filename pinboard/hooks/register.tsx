@@ -8,15 +8,19 @@
 //   mid-turn  → appended as a note from you, read at Claude's next step; if the turn ends before
 //               another step reads it, it is submitted as a follow-up prompt then;
 //   !! first  → mid-turn, the running turn is stopped and the pin is submitted at once as your prompt.
+// With `capture` on, prompts you type while a turn runs are listed below the pins for this session:
+//   »  1. use the staging bucket instead                 [×]   (dimmed; never saved, never re-sent)
+// Each one leaves a dim "» #N" marker row in the transcript; clicking its board row scrolls there.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Pin } from '../types'
-import { HELP, KEEP_PINS, delivery, followUp, header, interrupted, listing, parse, prompted, storeKey } from './pins'
+import type { Captured, Pin } from '../types'
+import { HELP, JUMP_GONE, KEEP_PINS, addCaptured, delivery, firstLine, followUp, header, interrupted, isCapture, jumpTo, listing, markerId, markerLabel, parse, prompted, removeCaptured, storeKey, withRequestId } from './pins'
 
 const pins = atom({ plugin: 'pinboard', key: 'pins' } as const, [] as Pin[])
 const folder = atom({ plugin: 'pinboard', key: 'folder' } as const, '')
 const folded = atom({ plugin: 'pinboard', key: 'folded' } as const, false)
+const captured = atom({ plugin: 'pinboard', key: 'captured' } as const, [] as Captured[])
 
 // Whether the main loop is in a turn, and pins appended mid-turn that no request has carried yet.
 let running = false
@@ -74,6 +78,37 @@ async function add($: EngineInterface, text: string, important: boolean, urgent:
   }
 }
 
+/** Places a captured prompt's marker row at the transcript's end: its requestId, or undefined when none came back. */
+async function placeMarker($: EngineInterface, id: string): Promise<string | undefined> {
+  const marker = markerId(id)
+  try {
+    const placed = await $.ui.place({ id: marker })
+    $.ui.log(`pinboard: place marker=${marker} isPlaced=${placed.isPlaced} requestId=${placed.requestId ?? '-'}${placed.isPlaced ? '' : ` reason=${placed.reason}`}`)
+    return placed.requestId
+  } catch (err) {
+    // the record stands without a marker; a click on it then says the turn is out of view
+    $.ui.log(`pinboard: place marker=${marker} failed error=${err instanceof Error ? err.message : String(err)}`)
+    return undefined
+  }
+}
+
+/** Lists a prompt typed mid-turn, then marks its place in the transcript. */
+async function record($: EngineInterface, text: string): Promise<void> {
+  const at = await $.clock.now()
+  const id = `${at}-${Math.random().toString(36).slice(2, 7)}`
+  await update($, captured, list => addCaptured(list, { id, text, at }))
+  const requestId = await placeMarker($, id)
+  if (requestId !== undefined) await update($, captured, list => withRequestId(list, id, requestId))
+}
+
+/** Scrolls the transcript to a captured prompt's marker, or says it is gone; the record stays either way. */
+async function jump($: EngineInterface, c: Captured): Promise<void> {
+  const deny = await jumpTo(c, requestId => $.ui.scroll({ to: { requestId }, block: 'start' }))
+  if (deny === undefined) return
+  $.ui.log(`pinboard: jump marker=${markerId(c.id)} requestId=${c.requestId ?? '-'} deny=${deny}`)
+  $.ui.toast(JUMP_GONE)
+}
+
 /** The pin numbered n on the board (1-based), or a reason. */
 async function byNumber($: EngineInterface, n: number): Promise<Pin | string> {
   const list = await read($, pins)
@@ -82,6 +117,7 @@ async function byNumber($: EngineInterface, n: number): Promise<Pin | string> {
 
 export const register: Register = (on, options) => {
   const deliver = options.deliver !== false
+  const capture = options.capture !== false
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -104,6 +140,21 @@ export const register: Register = (on, options) => {
     if (e.agentId === undefined) unread = []
     return yield* next(e)
   })
+
+  // A prompt typed mid-turn is listed on the board once it has entered; the prompt itself passes unchanged.
+  on('prompt.submit', async ($, e, next) => {
+    const result = await next(e)
+    if (capture && result.drop === undefined && isCapture(e)) {
+      try {
+        const text = firstLine(e.text)
+        if (text !== '') await record($, text)
+      } catch (err) {
+        // a side effect only: the prompt has entered either way
+        $.ui.log(`pinboard: capture failed error=${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    return result
+  }).catch(($, e, next) => next(e)) // a hook that still fails or overruns lets the prompt through as it was
 
   // The turn ended before any request carried a pin: send it as a follow-up prompt.
   on('turn.complete', async ($, e, next) => {
@@ -144,17 +195,27 @@ export const register: Register = (on, options) => {
     return { text: a.kind === 'done' ? `Marked #${a.n} done.` : `Reopened #${a.n}.` }
   })
 
+  // The marker row where a prompt was captured: its board number, dimmed; nothing once it left the board.
+  on('ui.render', { component: 'Placed' }, async ($, e, next) => {
+    if (!capture || e.props.plugin !== 'pinboard') return next(e)
+    const i = (await read($, captured)).findIndex(c => markerId(c.id) === e.props.id)
+    if (i < 0) return next(e)
+    const { Text } = $.ui.resolve(e)
+    return <Text dimColor>{markerLabel(i + 1)}</Text>
+  })
+
   // Our board on top, whatever else the band holds (other mods' rows) below it.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const list = await read($, pins)
-    if (e.props.hasSurvey || list.length === 0) return next(e)
+    const typed = capture ? await read($, captured) : []
+    if (e.props.hasSurvey || (list.length === 0 && typed.length === 0)) return next(e)
     const isFolded = await read($, folded)
     const { Box, Button, Text } = $.ui.resolve(e)
     const below = await next(e)
     return (
       <Box flexDirection="column">
         <Box flexDirection="row" gap={1}>
-          <Text bold color="yellow">{header(list)}</Text>
+          <Text bold color="yellow">{header(list, typed.length)}</Text>
           <Button key="fold" plain label={isFolded ? '[Show]' : '[Hide]'} onPress={() => update($, folded, f => !f)} />
         </Box>
         {isFolded
@@ -168,6 +229,19 @@ export const register: Register = (on, options) => {
                   </Text>
                 </Box>
                 <Button key={`rm-${p.id}`} plain label="[×]" onPress={() => remove($, p.id)} />
+              </Box>
+            ))}
+        {isFolded
+          ? null
+          : typed.map((c, i) => (
+              <Box key={`cap-${c.id}`} flexDirection="row" gap={1}>
+                <Text dimColor>{' » '}</Text>
+                <Box flexGrow={1}>
+                  <Button key={`capgo-${c.id}`} plain dimColor onPress={() => jump($, c)}>
+                    <Text wrap="truncate" dimColor>{`${i + 1}. ${c.text}`}</Text>
+                  </Button>
+                </Box>
+                <Button key={`caprm-${c.id}`} plain label="[×]" onPress={() => update($, captured, l => removeCaptured(l, c.id))} />
               </Box>
             ))}
         {below}

@@ -1,7 +1,7 @@
 {
   "name": "pinboard",
-  "version": "0.3.0",
-  "description": "Pinned notes above the prompt: /pin a note (! important, !! interrupt Claude), check it off or remove it with ×; each new pin reaches Claude at once; kept per folder",
+  "version": "0.4.0",
+  "description": "Pinned notes above the prompt: /pin a note (! important, !! interrupt Claude), check it off or remove it with ×; each new pin reaches Claude at once; kept per folder; what you type mid-turn is listed for the session",
   "author": {
     "name": "gloriouslegacy"
   },
@@ -11,6 +11,12 @@
       "type": "boolean",
       "title": "Send new pins to Claude",
       "description": "Each new pin is added to the conversation at once, so Claude reads it at its next step even in the middle of a turn",
+      "default": true
+    },
+    "capture": {
+      "type": "boolean",
+      "title": "List what you type mid-turn",
+      "description": "Prompts you type while Claude is working are listed on the board, dimmed, for this session only (not saved)",
       "default": true
     }
   }
