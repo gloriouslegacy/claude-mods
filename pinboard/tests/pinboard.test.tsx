@@ -17,8 +17,11 @@ test('parsing /pin', () => {
   expect(listing([pin])).toBe('1. [ ] ★ x')
 })
 
+// Tests of the board's rows start the session unfolded; the folded start has its own test.
+const SHOWN = { options: { showBoard: true } }
+
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`pins reach Claude, show above the prompt, check off and go with × on ${surface}`, async ($, on) => {
+  test(`pins reach Claude, show above the prompt, check off and go with × on ${surface}`, SHOWN, async ($, on) => {
     const clock = mock.clock(on, { now: 1_000 })
     mock.store(on)
     const session = mock.session(on)
@@ -232,7 +235,7 @@ const capturing = (on: On, clock: 'ok' | 'throw' = 'ok') => {
 
 const BAND = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
-test('a prompt typed mid-turn is listed dimmed with », passes unchanged, folds with /pin and goes with ×', async ($, on) => {
+test('a prompt typed mid-turn is listed dimmed with », passes unchanged, folds with /pin and goes with ×', SHOWN, async ($, on) => {
   const { session, entered } = capturing(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const composer = { origin: { kind: 'composer' as const }, wait: false }
@@ -320,7 +323,7 @@ test('a click on a captured row scrolls to its stored marker, or answers why not
   expect(await jumpTo(item, rejecting)).toBe('failed: no conversation')
 })
 
-test('a captured prompt leaves a » #N marker in the transcript, kept on its record', async ($, on) => {
+test('a captured prompt leaves a » #N marker in the transcript, kept on its record', SHOWN, async ($, on) => {
   const { placed } = capturing(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const composer = { origin: { kind: 'composer' as const }, wait: false }
@@ -356,7 +359,7 @@ test('a prompt that is only control characters is not listed', async ($, on) => 
 })
 
 for (const fault of ['none', 'throw'] as const) {
-  test(`a prompt whose marker was not placed (${fault}) is still listed; a click on it toasts and keeps it`, async ($, on) => {
+  test(`a prompt whose marker was not placed (${fault}) is still listed; a click on it toasts and keeps it`, SHOWN, async ($, on) => {
     const { host, toasts, placed } = capturing(on)
     host.place = fault
     await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
@@ -370,7 +373,7 @@ for (const fault of ['none', 'throw'] as const) {
   })
 }
 
-test('a prompt typed while Claude is idle is listed the same way; commands, hidden and plugin prompts still are not', async ($, on) => {
+test('a prompt typed while Claude is idle is listed the same way; commands, hidden and plugin prompts still are not', SHOWN, async ($, on) => {
   const { entered, placed } = capturing(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const composer = { origin: { kind: 'composer' as const }, wait: false }
@@ -418,7 +421,7 @@ test('full text helpers: 20 lines of 200 characters, " …" when cut, every line
   expect(toggleOpen(opened, 'a')[0]?.open).toBeUndefined()
 })
 
-test('a longer typed prompt unfolds with [+] and folds back with [-]; /pin folds it away too', async ($, on) => {
+test('a longer typed prompt unfolds with [+] and folds back with [-]; /pin folds it away too', SHOWN, async ($, on) => {
   capturing(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const composer = { origin: { kind: 'composer' as const }, wait: false }
@@ -451,4 +454,41 @@ test('a longer typed prompt unfolds with [+] and folds back with [-]; /pin folds
   expect(await band.find({ text: '[+]' })).toBeDefined()
   expect(await band.find({ text: 'then push' })).toBeUndefined()
   expect(await band.find({ text: '2. use the staging bucket …' })).toBeDefined()
+})
+
+test('the board starts folded by default and a new pin does not unfold it; [Show] and /pin do, and a second session.start keeps that', async ($, on) => {
+  capturing(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'pin', args: 'a note' })
+  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: '📌 Pins 1' })).toBeDefined()
+  expect(await band.find({ text: '[Show]' })).toBeDefined()
+  expect(await band.find({ text: '1. a note' })).toBeUndefined()
+
+  await band.press({ key: 'fold' })
+  expect(await band.find({ text: '[Hide]' })).toBeDefined()
+  expect(await band.find({ text: '1. a note' })).toBeDefined()
+  await $.command.run({ command: 'pin', args: '' })
+  await $.command.run({ command: 'pin', args: 'another note' })
+  expect(await band.find({ text: '📌 Pins 2' })).toBeDefined()
+  expect(await band.find({ text: '2. another note' })).toBeUndefined()
+  await $.command.run({ command: 'pin', args: '' })
+  expect(await band.find({ text: '2. another note' })).toBeDefined()
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true }) // resume / compact / clear
+  expect(await band.find({ text: '2. another note' })).toBeDefined()
+})
+
+test('with showBoard on the board starts unfolded, a new pin still leaves a folded board folded, and so does a second session.start', SHOWN, async ($, on) => {
+  capturing(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'pin', args: 'a note' })
+  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: '[Hide]' })).toBeDefined()
+  expect(await band.find({ text: '1. a note' })).toBeDefined()
+  await $.command.run({ command: 'pin', args: '' })
+  await $.command.run({ command: 'pin', args: 'another note' })
+  expect(await band.find({ text: '[Show]' })).toBeDefined()
+  expect(await band.find({ text: '2. another note' })).toBeUndefined()
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true }) // resume / compact / clear
+  expect(await band.find({ text: '[Show]' })).toBeDefined()
 })

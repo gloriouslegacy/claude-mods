@@ -3,7 +3,8 @@
 //   [✓] 1. ★ check the .env keys before deploying        [×]
 //   [↺] 2. upload to the drive when the render is done   [×]   (struck through: done)
 // /pin <note> pins one ("!" first marks it important); /pin done|undo|rm N, /pin clear, /pin list,
-// /pin alone folds the board. The command runs at once even mid-turn. A new pin reaches Claude:
+// /pin alone folds the board. A session starts folded unless `showBoard` is on, and a new pin does not
+// unfold it: only [Show]/[Hide] and /pin do. The command runs at once even mid-turn. A new pin reaches Claude:
 //   idle      → submitted as your prompt, so Claude starts on it right away;
 //   mid-turn  → appended as a note from you, read at Claude's next step; if the turn ends before
 //               another step reads it, it is submitted as a follow-up prompt then;
@@ -50,7 +51,6 @@ async function add($: EngineInterface, text: string, important: boolean, urgent:
   const at = await $.clock.now()
   const pin: Pin = { id: `${at}-${Math.random().toString(36).slice(2, 7)}`, text, important, done: false, at }
   const list = await save($, l => [...l, pin])
-  await update($, folded, () => false)
   const n = list.findIndex(p => p.id === pin.id) + 1
   if (!deliver) return `📌 Pinned #${n}: ${text}`
   try {
@@ -120,12 +120,16 @@ async function byNumber($: EngineInterface, n: number): Promise<Pin | string> {
 export const register: Register = (on, options) => {
   const deliver = options.deliver !== false
   const capture = options.capture !== false
+  const startFolded = options.showBoard !== true
+  let hasStarted = false // per run: resume, compact and clear send session.start again; the chosen Show/Hide stays
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const cwd = await $.session.cwd()
     const stored = await $.store.get(storeKey(cwd))
     await update($, folder, () => cwd)
+    if (!hasStarted) await update($, folded, () => startFolded)
+    hasStarted = true
     await update($, pins, () => (Array.isArray(stored) ? (stored as Pin[]) : []))
     await $.command.register({ name: 'pin', description: 'Pin a note above the prompt (! important, !! interrupt and read now); done/undo/rm N, clear, list', argumentHint: '[!|!!] <note> | done N | rm N', immediate: true })
     return result

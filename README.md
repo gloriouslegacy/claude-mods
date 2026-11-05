@@ -51,7 +51,7 @@ Refreshes every 15 seconds and whenever a response arrives. Shows a toast once, 
 
 ### pinboard — notes pinned above the prompt
 
-`/pin <note>` pins a note on a small board above the prompt that stays put however long the conversation gets. Start the note with `!` to mark it important (red, with ★), or with `!!` to interrupt Claude (below). Each row has `[✓]` to check it off (struck through, `[↺]` to reopen) and `[×]` on the right to remove it. The board is kept per folder: a new session in the same folder shows it as it was left.
+`/pin <note>` pins a note on a small board above the prompt that stays put however long the conversation gets. Start the note with `!` to mark it important (red, with ★), or with `!!` to interrupt Claude (below). Each row has `[✓]` to check it off (struck through, `[↺]` to reopen) and `[×]` on the right to remove it. The board is kept per folder: a new session in the same folder shows it as it was left. A session starts with the board folded to its header line (`📌 Pins N [Show]`), and adding a pin does not unfold it: click `[Show]` or type `/pin` to see the rows. Turn on `pinboard.showBoard` in `/config` to start unfolded.
 
 Each new pin is also **sent to Claude at once**, and `/pin` runs even while Claude is working:
 
@@ -201,7 +201,7 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 ### pinboard
 
 - Type **`/pin <note>`** at any time, even while Claude is working; `/pin ! <note>` marks it important, `/pin !! <note>` also stops Claude's turn so it reads the pin now. The other commands are in the table in section 1.
-- Click `[✓]` / `[↺]` / `[×]` on a row, or focus the band with `ctrl+x tab` and move to the button. `[Hide]` / `[Show]` folds the board to its header line.
+- Click `[✓]` / `[↺]` / `[×]` on a row, or focus the band with `ctrl+x tab` and move to the button. `[Hide]` / `[Show]` folds the board to its header line. The board starts folded (unless `pinboard.showBoard` is on) and only `[Show]`/`[Hide]` and `/pin` change that; a new pin does not unfold it.
 - A new pin reaches Claude at once: when idle it is sent as your prompt and Claude starts on it; mid-turn it is read at Claude's next step (or sent as a prompt when the turn ends, if no step read it). Checking off or removing a pin is not sent.
 - Pins are saved per folder (latest 50) and come back in any new session started in that folder.
 - Prompts you send with Enter, while Claude is working or idle, are listed below the pins, dimmed with a `»` marker and numbered separately, each with a `[×]` to remove it (and `[+]`/`[-]` to unfold or fold a longer prompt). The header reads `📌 Pins N · » M`. `/pin` (fold) hides them too, and a new one does not unfold a folded board. `/pin done/undo/rm N` and `/pin clear` apply to pins only. They are kept for the session only (latest 20; up to 20 lines of 200 characters each). Anything you paste into a prompt (a token, say) stays visible on the board until you remove it with `[×]` or the session ends.
@@ -210,6 +210,7 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 |---|---|---|
 | `pinboard.deliver` | `true`, `false` — send each new pin to Claude | `true` |
 | `pinboard.capture` | `true`, `false` — list the prompts you type below the pins (shown as "List what you type" in `/config`) | `true` |
+| `pinboard.showBoard` | `true`, `false` — start each session with the board unfolded; off, it starts folded to its header line (shown as "Show the board at start" in `/config`) | `false` |
 
 ### agent-flow
 

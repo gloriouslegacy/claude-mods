@@ -2,6 +2,13 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.3.0 (2026-11-05)
+
+- Changed: pinboard 0.6.0 starts each session with the board folded to its header line (`📌 Pins N · » M [Show]`). Click `[Show]` or type `/pin` to unfold it.
+- Changed: adding a pin no longer unfolds a folded board. It stays folded until you show it.
+- New setting `pinboard.showBoard` (`true`/`false`, default `false`). Set it to `true` in `/config` to start with the board shown, as before.
+- Plugins: qhud 0.18.0, pinboard 0.6.0, agent-flow 0.6.1.
+
 ## v2.2.0 (2026-11-03)
 
 - Changed: pinboard 0.5.0 lists every prompt you send with Enter, idle or while Claude is working, not only mid-turn ones. Both look the same (dimmed `»` rows, click to jump to that turn). Slash commands, notifications and plugin-sent prompts are still not listed.
