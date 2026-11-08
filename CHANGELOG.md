@@ -2,6 +2,11 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.5.1 (2026-11-08)
+
+- Changed: agent-flow 0.8.1 closes the `/aflow` pane when you press the same strip button again (`[sub_Diff]`, `[main_Diff]` or `[+]`) while the pane shows what that button opened. Another agent's button switches the pane instead; after closing the pane by hand, the button opens it again.
+- Plugins: qhud 0.18.1, pinboard 0.6.0, agent-flow 0.8.1.
+
 ## v2.5.0 (2026-11-08)
 
 - Changed: agent-flow 0.8.0 shows the pane's buttons in the unfolded strip above the prompt: `[+]` on every row, `[sub_Diff]` / `[main_Diff]` when that agent edited files. Pressing one opens the `/aflow` pane with that row's details or diff; the strip itself stays one line per agent.

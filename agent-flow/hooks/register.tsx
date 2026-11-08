@@ -101,8 +101,28 @@ async function toggleOpen($: EngineInterface, id: string): Promise<void> {
   await update($, view, v => ({ ...v, open: v.open.includes(id) ? v.open.filter(x => x !== id) : [...v.open, id] }))
 }
 
-/** A band button: the view set to that row's details or diffs, then the pane opened (an open one is retitled). */
-async function showInPane($: EngineInterface, change: (v: FlowView) => FlowView): Promise<void> {
+/** Whether our pane is the one shown; when the host cannot say: no, so a band button opens it as before. */
+async function isPaneShown($: EngineInterface): Promise<boolean> {
+  try {
+    return shouldTick(await $.ui.panes(), PANE)
+  } catch {
+    return false // unavailable for a moment: treat it as closed
+  }
+}
+
+/**
+ * A band button: pressed while the shown pane already holds what it opens (isSame), it closes the pane;
+ * otherwise the view is set to that row's details or diffs and the pane opened (an open one is retitled).
+ */
+async function showInPane($: EngineInterface, isSame: (v: FlowView) => boolean, change: (v: FlowView) => FlowView): Promise<void> {
+  if (isSame(await read($, view)) && (await isPaneShown($))) {
+    try {
+      await $.ui.close({ id: PANE })
+    } catch {
+      return // a hook kept it open: nothing more to do
+    }
+    return
+  }
   await update($, view, change)
   let isPlaced: boolean
   try {
@@ -334,8 +354,18 @@ export const register: Register = (on, options) => {
     const below = await next(e)
     const act: Actions = {
       setView: change => update($, view, old => ({ ...old, ...change })),
-      openDiffs: agent => showInPane($, v => ({ ...v, mode: 'diffs', agent, pos: null, expanded: false })),
-      toggleOpen: id => showInPane($, v => ({ ...v, mode: 'flow', open: v.open.includes(id) ? v.open : [...v.open, id] })),
+      openDiffs: agent =>
+        showInPane(
+          $,
+          v => v.mode === 'diffs' && v.agent === agent,
+          v => ({ ...v, mode: 'diffs', agent, pos: null, expanded: false }),
+        ),
+      toggleOpen: id =>
+        showInPane(
+          $,
+          v => v.mode === 'flow' && v.open.includes(id),
+          v => ({ ...v, mode: 'flow', open: v.open.includes(id) ? v.open : [...v.open, id] }),
+        ),
     }
     const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => !f), act)
     return (

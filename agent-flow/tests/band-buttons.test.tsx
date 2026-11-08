@@ -7,13 +7,16 @@ const BAND = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 160,
 const PANE = { title: 'Agent flow', isFocused: false, bodyColumns: 160, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} }
 const patch = [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-a', '+b'] }]
 
-/** A host whose roster lists one running implementer (a1); main and a1 have each made one edit. */
-const host = (on: On) => {
+type Roster = { id: string; description: string; type: string; status: 'running' }[]
+const A1: Roster = [{ id: 'a1', description: 'Fix the parser', type: 'implementer', status: 'running' }]
+
+/** A host whose roster lists one running implementer (a1) unless told otherwise; main and a1 have each made one edit. */
+const host = (on: On, roster: Roster = A1, panes: () => object[] = () => []) => {
   mock.clock(on, { now: 10_000 })
   on('session.start', () => ({ cwd: '/p' }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
-  on('ui.panes', () => ({ value: [] }))
-  on('agent.list', () => ({ value: [{ id: 'a1', description: 'Fix the parser', type: 'implementer', status: 'running' as const }] }))
+  on('ui.panes', () => ({ value: panes() as never }))
+  on('agent.list', () => ({ value: roster }))
   on('turn.start', (_$, e) => ({ turnId: e.turnId }))
   on('turn.step', async function* (_$, e) {
     const usage = { input_tokens: 100, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, model: e.model }
@@ -98,4 +101,64 @@ test('a band button whose pane is refused: one toast, the band keeps drawing', a
   expect(toasts.length).toBe(1)
   expect(toasts[0]).toContain('/aflow text')
   expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
+})
+
+// v2.5.1 F1: a band button pressed again while the shown pane holds what it opens closes the pane
+
+const A2: Roster = [...A1, { id: 'a2', description: 'Write the docs', type: 'documenter', status: 'running' }]
+
+/** A host that keeps the pane's shown state: ui.open shows it, ui.close takes it away; calls land in `calls`. */
+const paneHost = (on: On, roster: Roster = A1) => {
+  const calls: string[] = []
+  let isShown = false
+  host(on, roster, () => (isShown ? [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }] : []))
+  on('ui.open', (_$, e) => {
+    calls.push(`open ${e.id}`)
+    isShown = true
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', (_$, e) => {
+    calls.push(`close ${e.id}`)
+    isShown = false
+    return { value: undefined }
+  })
+  return { calls, closeByHand: () => (isShown = false) }
+}
+
+test('the same [sub_Diff] pressed twice: the pane opens, then closes', async ($, on) => {
+  const { calls } = paneHost(on)
+  const band = await unfoldedBand($)
+  await band.press({ key: 'aflow-diff-a1' })
+  await band.press({ key: 'aflow-diff-a1' })
+  expect(calls).toEqual(['open agent-flow', 'close agent-flow'])
+})
+
+test('another subagent\'s [sub_Diff]: the pane switches to its diffs without closing', async ($, on) => {
+  const { calls } = paneHost(on, A2)
+  const band = await unfoldedBand($)
+  await $.tool.call({ tool: 'Edit', tool_use_id: 'e3', file_path: '/p/docs/a.md', old_string: 'a', new_string: 'b', agentId: 'a2' })
+  await band.press({ key: 'aflow-diff-a1' })
+  await band.press({ key: 'aflow-diff-a2' })
+  expect(calls).toEqual(['open agent-flow', 'open agent-flow'])
+  const pane = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'Pane', requestId: 'agent-flow', props: PANE })
+  expect(await pane.find({ text: /sub_Diff · documenter "Write the docs"/ })).toBeDefined()
+})
+
+test('the same [+] pressed twice: the pane closes and the row stays unfolded', async ($, on) => {
+  const { calls } = paneHost(on)
+  const band = await unfoldedBand($)
+  await band.press({ key: 'aflow-more-a1' })
+  await band.press({ key: 'aflow-more-a1' })
+  expect(calls).toEqual(['open agent-flow', 'close agent-flow'])
+  const pane = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'Pane', requestId: 'agent-flow', props: PANE })
+  expect(await pane.find({ text: /model claude-fable-5-1/ })).toBeDefined()
+})
+
+test('a pane closed by hand: the same button opens it again', async ($, on) => {
+  const { calls, closeByHand } = paneHost(on)
+  const band = await unfoldedBand($)
+  await band.press({ key: 'aflow-diff-a1' })
+  closeByHand()
+  await band.press({ key: 'aflow-diff-a1' })
+  expect(calls).toEqual(['open agent-flow', 'open agent-flow'])
 })

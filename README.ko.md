@@ -74,7 +74,7 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 
 ### agent-flow — 메인 에이전트와 서브에이전트를 한 패널에
 
-서브에이전트가 생기면 프롬프트 위에 `Agent flow · main + N agents · R running · W waiting [Show]` 한 줄 띠가 pin 메모 줄처럼 접힌 채 나타납니다. `[Show]`/`[Hide]`로 펼치면 main과 서브에이전트가 한 줄씩 보입니다(각 행에 패널과 같은 `[+]`·`[sub_Diff]`·`[main_Diff]` 버튼이 있고 Diff 버튼은 파일을 고친 에이전트에만 나타납니다. 누르면 `/aflow` 패널이 열려 그 행의 상세나 diff를 보여 주며, 띠 자체는 에이전트당 한 줄 그대로입니다). `/config`의 `agent-flow.band`로 띠를 끄거나 `agent-flow.showFlow`로 펼친 채 시작할 수 있습니다.
+서브에이전트가 생기면 프롬프트 위에 `Agent flow · main + N agents · R running · W waiting [Show]` 한 줄 띠가 pin 메모 줄처럼 접힌 채 나타납니다. `[Show]`/`[Hide]`로 펼치면 main과 서브에이전트가 한 줄씩 보입니다(각 행에 패널과 같은 `[+]`·`[sub_Diff]`·`[main_Diff]` 버튼이 있고 Diff 버튼은 파일을 고친 에이전트에만 나타납니다. 누르면 `/aflow` 패널이 열려 그 행의 상세나 diff를 보여 주고, 같은 버튼을 다시 누르면(패널이 그 버튼이 연 화면을 보이는 중일 때) 패널을 닫습니다. 띠 자체는 에이전트당 한 줄 그대로입니다). `/config`의 `agent-flow.band`로 띠를 끄거나 `agent-flow.showFlow`로 펼친 채 시작할 수 있습니다.
 
 `/aflow`로 패널을 엽니다(이제 자동으로 열리지 않으며, 자동으로 열려면 `/config`의 `agent-flow.autoOpen`을 켭니다). 세션의 메인 에이전트와 모든 서브에이전트, 상세와 diff가 보입니다.
 
