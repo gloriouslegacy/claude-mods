@@ -99,6 +99,10 @@ export type FlowView = {
   showUnlisted: boolean
 }
 
+/** The components $.ui.resolve(e) hands the render (Box, Text, Button, Code), passed to hooks/view.tsx.
+ *  Written by hand: this contract may not import 'claude-code' (plugin validate), so props go unchecked here. */
+export type Ui = Record<'Box' | 'Text' | 'Button' | 'Code', (props: any) => JSX.Element>
+
 declare module 'claude-code' {
   interface PluginState {
     'agent-flow': {
@@ -108,8 +112,10 @@ declare module 'claude-code' {
       /** The last thing that happened: "implementer · Edit src/parser.ts". */
       last: string
       view: FlowView
-      /** Bumped every 2 s while an agent runs and the pane is up, so elapsed times redraw. */
+      /** Bumped every 2 s while an agent runs and the pane or the unfolded band is up, so elapsed times redraw. */
       tick: number
+      /** The flow above the prompt folded to its headline. */
+      folded: boolean
     }
   }
 }

@@ -1,52 +1,25 @@
 // agent-flow: one pane with the main agent and every subagent of the session, opened with /aflow
-// or once when Claude Code starts (autoOpen); /aflow text prints the same as text.
-//   Agent flow · main + 2 agents · 2 running · 0 waiting
-//   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
-//   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
-//   └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]   Bash npm test 38s  ⚠ slow 38s
-//   ▸ unlisted loops (1)
-//   last: implementer · Edit src/parser.ts
-// Each row: status, model, time, tokens (cache reads left out), tool calls (×), files changed (✎), what it
+// or once when Claude Code starts (autoOpen); /aflow text prints the same as text. The pane is drawn by
+// hooks/view.tsx (its header shows an example). Each row: status, model, time, tokens (cache reads left out), tool calls (×), files changed (✎), what it
 // is doing now, and warnings: ⚠ slow when a tool call runs past its threshold (60 s; shell 3 min), never
 // for tools that wait by design (Agent, Monitor, ...); "thinking 1m10s" while a long model request runs;
 // ⚠ silent when a working loop has neither for 2 min. Yellow past the threshold, red past three times it.
 // Each finished subagent run is logged across sessions: /aflow stats [days] sums it by agent and model.
 // [+] opens the model, the task prompt and the last tool calls. main_Diff / sub_Diff open that agent's
 // changes one diff at a time. Loops the engine's roster does not list (a workflow's agents, engine
-// forks) go in a folded "unlisted loops" group. Nothing here calls a model; session-only.
+// forks) go in a folded "unlisted loops" group. Once a subagent has run, the band above the prompt shows
+// the headline with [Show]/[Hide] (band; starts folded unless showFlow). Nothing here calls a model; session-only.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Activity, AgentRow, Change, FlowView, LogEntry, MainRow, ToolRecord } from '../types'
-import { counts, creation, lineCount, normalise, render } from './diff'
+import type { Activity, AgentRow, Change, FlowView, MainRow, ToolRecord } from '../types'
+import { counts, creation, normalise } from './diff'
 import type { RawHunk } from './diff'
-import {
-  COLLAPSED_LINES,
-  KEEP_CHANGES,
-  KEEP_LINES,
-  KEEP_RECENT,
-  PROMPT_CHARS,
-  asText,
-  changesOf,
-  clockTime,
-  doing,
-  elapsed,
-  fmt,
-  fresh,
-  headline,
-  isCapped,
-  isWorking,
-  mergeRoster,
-  short,
-  shortPath,
-  shouldAutoOpen,
-  shouldTick,
-  stepTokens,
-  toolLabel,
-  tree,
-} from './flow'
-import type { Limits, RosterEntry, Usage } from './flow'
-import { KEEP_LOG, LOG_KEY, statsDays, statsText } from './stats'
+import { KEEP_CHANGES, KEEP_LINES, KEEP_RECENT, PROMPT_CHARS, asText, elapsed, fresh, isWorking, mergeRoster, newRow, shortPath, shouldAutoOpen, shouldTick, stepTokens, toolLabel } from './flow'
+import type { Limits, RosterEntry, Spawn, Usage } from './flow'
+import { LOG_KEY, appendLog, asLog, logEntry, statsDays, statsText } from './stats'
+import { bandView, diffView, flowView } from './view'
+import type { Actions } from './view'
 
 const PANE = 'agent-flow'
 const TITLE = 'Agent flow'
@@ -58,9 +31,10 @@ const changes = atom({ plugin: 'agent-flow', key: 'changes' } as const, [] as Ch
 const last = atom({ plugin: 'agent-flow', key: 'last' } as const, '')
 const view = atom({ plugin: 'agent-flow', key: 'view' } as const, { mode: 'flow', agent: 'main', pos: null, expanded: false, open: [], showUnlisted: false } as FlowView)
 const tick = atom({ plugin: 'agent-flow', key: 'tick' } as const, 0)
+const folded = atom({ plugin: 'agent-flow', key: 'folded' } as const, true)
 
 // What spawns told us before the agent had a row: its prompt and the time it started, by agent id.
-const spawned = new Map<string, { prompt: string; at: number; type: string; task: string }>()
+const spawned = new Map<string, Spawn>()
 
 type Roster = Awaited<ReturnType<EngineInterface['agent']['list']>>
 
@@ -72,17 +46,12 @@ async function roster($: EngineInterface): Promise<Roster | null> {
   }
 }
 
-function newRow(id: string, now: number): AgentRow {
-  const s = spawned.get(id)
-  return { id, type: s?.type || 'subagent', task: s?.task || '', model: null, status: 'running', startedAt: s?.at ?? now, tokens: 0, edits: 0, prompt: s?.prompt, ...fresh(now) }
-}
-
 /** Brings the rows in line with the engine's roster: new agents added, types, tasks and states refreshed. */
 async function sync($: EngineInterface): Promise<void> {
   const list = await roster($)
   if (!list) return
   const now = await $.clock.now()
-  const add = (a: RosterEntry): AgentRow => ({ ...newRow(a.id, now), type: a.type || 'subagent', task: a.description || spawned.get(a.id)?.task || '', status: a.status, parentId: a.parentId })
+  const add = (a: RosterEntry): AgentRow => ({ ...newRow(a.id, now, spawned.get(a.id)), type: a.type || 'subagent', task: a.description || spawned.get(a.id)?.task || '', status: a.status, parentId: a.parentId })
   // a quiet roster leaves the atom alone, so the tick alone redraws the pane
   const rows = await read($, agents)
   if (mergeRoster(rows, list, now, add) === rows) return
@@ -96,7 +65,7 @@ async function ensureRow($: EngineInterface, id: string): Promise<void> {
   if ((await read($, agents)).some(r => r.id === id)) return
   const now = await $.clock.now()
   const s = spawned.get(id)
-  await update($, agents, rows => (rows.some(r => r.id === id) ? rows : [...rows, { ...newRow(id, now), type: s?.type || 'loop', isUnlisted: !s }]))
+  await update($, agents, rows => (rows.some(r => r.id === id) ? rows : [...rows, { ...newRow(id, now, s), type: s?.type || 'loop', isUnlisted: !s }]))
 }
 
 /** Applies a change to main's or one agent's activity. */
@@ -141,27 +110,13 @@ async function flowText($: EngineInterface, limits: Limits): Promise<string> {
 async function logRun($: EngineInterface, id: string, ms: number, isAborted: boolean): Promise<void> {
   const row = (await read($, agents)).find(r => r.id === id)
   if (!row || row.isUnlisted) return
-  const was = row.logged ?? { tokens: 0, calls: 0, edits: 0 }
-  const entry: LogEntry = {
-    at: await $.clock.now(),
-    cwd: await $.session.cwd(),
-    type: row.type,
-    task: row.task,
-    model: row.model,
-    tokens: row.tokens - was.tokens,
-    ms,
-    calls: row.calls - was.calls,
-    edits: row.edits - was.edits,
-    isAborted,
-  }
+  const entry = logEntry(row, await $.clock.now(), await $.session.cwd(), ms, isAborted)
   await update($, agents, rows => rows.map(r => (r.id === id ? { ...r, logged: { tokens: r.tokens, calls: r.calls, edits: r.edits } } : r)))
-  const log = await $.store.get(LOG_KEY)
-  await $.store.set(LOG_KEY, [...(Array.isArray(log) ? (log as LogEntry[]) : []), entry].slice(-KEEP_LOG))
+  await $.store.set(LOG_KEY, appendLog(asLog(await $.store.get(LOG_KEY)), entry))
 }
 
 async function stats($: EngineInterface, args: string): Promise<string> {
-  const log = await $.store.get(LOG_KEY)
-  return statsText(Array.isArray(log) ? (log as LogEntry[]) : [], await $.clock.now(), statsDays(args))
+  return statsText(asLog(await $.store.get(LOG_KEY)), await $.clock.now(), statsDays(args))
 }
 
 /** Whether our pane is up to redraw; when the host cannot say, as before: yes. */
@@ -216,24 +171,28 @@ const seconds = (v: unknown, fallback: number): number => (typeof v === 'number'
 export const register: Register = (on, options) => {
   const limits: Limits = { slow: seconds(options.slowSeconds, 60_000), slowShell: seconds(options.slowShellSeconds, 180_000), silent: seconds(options.silentSeconds, 120_000) }
   const keepLog = options.log !== false
-  const isAutoOpen = options.autoOpen !== false
-  let hasOpened = false // per run: resume, compact and clear send session.start again; a closed pane stays closed
+  const isAutoOpen = options.autoOpen === true
+  const isBand = options.band !== false
+  const startFolded = options.showFlow !== true
+  let hasStarted = false // per run: resume, compact and clear send session.start again; a closed pane stays closed, the chosen Show/Hide stays
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const command = { description: 'Open the Agent flow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
     await $.command.register({ name: 'aflow', ...command })
     $.clock.every(TICK_MS, async () => {
-      // nothing to redraw while the pane is closed, undrawn or a tab behind; /aflow syncs when it opens it
-      if (!(await isPaneUp($))) return
       const rows = await read($, agents)
+      // nothing to redraw while the band is folded or empty and the pane closed, undrawn or a tab behind; /aflow syncs when it opens it
+      const isBandOpen = isBand && !(await read($, folded)) && rows.some(r => !r.isUnlisted)
+      if (!isBandOpen && !(await isPaneUp($))) return
       // a finished agent can be woken again (SendMessage), so look while anything may be working
       if (!(await read($, main)).isRunning && !rows.some(isWorking)) return
       await sync($)
       await update($, tick, t => t + 1)
     })
-    const wasOpened = hasOpened
-    hasOpened = true // the first session.start decides, whether or not it opened anything
-    await autoOpen($, isAutoOpen, wasOpened)
+    const wasStarted = hasStarted
+    hasStarted = true // the first session.start decides, whether or not it opened anything
+    if (!wasStarted) await update($, folded, () => startFolded)
+    await autoOpen($, isAutoOpen, wasStarted)
     return result
   })
 
@@ -337,130 +296,28 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button, Code } = $.ui.resolve(e)
+    const ui = $.ui.resolve(e)
     const v = await read($, view)
     // the flow view does not depend on the diff atom, so only the diffs view reads it
     const [m, rows, lastText, all] = await Promise.all([read($, main), read($, agents), read($, last), v.mode === 'diffs' ? read($, changes) : Promise.resolve([]), read($, tick)])
     const now = await $.clock.now()
-    const setView = (change: Partial<FlowView>) => update($, view, old => ({ ...old, ...change }))
+    const act: Actions = { setView: change => update($, view, old => ({ ...old, ...change })), openDiffs: agent => openDiffs($, agent), toggleOpen: id => toggleOpen($, id) }
+    return v.mode === 'diffs' ? diffView(ui, v, all, rows, act) : flowView(ui, { v, m, rows, lastText, now, limits }, act)
+  })
 
-    if (v.mode === 'diffs') {
-      const list = changesOf(all, v.agent)
-      const at = list.length === 0 ? -1 : v.pos === null ? list.length - 1 : Math.min(Math.max(v.pos, 0), list.length - 1)
-      const c = at >= 0 ? list[at] : undefined
-      const row = rows.find(r => r.id === v.agent)
-      const title = v.agent === 'main' ? 'main_Diff · main' : `sub_Diff · ${row?.type ?? 'subagent'}${row?.task ? ` "${row.task}"` : ''}`
-      const diff = c ? render(c.hunks, v.expanded ? null : COLLAPSED_LINES) : null
-      const hidden = c && diff ? lineCount(c.hunks) - diff.shown : 0
-      return (
-        <Box flexDirection="column" gap={1}>
-          <Box flexDirection="row" gap={1}>
-            <Button key="back" hotkey="b" label="◀ Flow" onPress={() => setView({ mode: 'flow' })} />
-            <Text bold wrap="truncate">{title}</Text>
-          </Box>
-          <Box flexDirection="row" gap={1}>
-            <Button key="prev" hotkey="h" label="◀" onPress={() => setView({ pos: Math.max(0, at - 1), expanded: false })} />
-            <Text>{list.length === 0 ? '0 / 0' : `${at + 1} / ${list.length}`}</Text>
-            <Button key="next" hotkey="l" label="▶" onPress={() => setView({ pos: at + 1 >= list.length - 1 ? null : at + 1, expanded: false })} />
-          </Box>
-          {!c || !diff ? (
-            <Text dimColor>No changes by this agent yet.</Text>
-          ) : (
-            <Box flexDirection="column">
-              <Text bold wrap="truncate-start">📄 {shortPath(c.path)}{c.isNew ? ' (new file)' : ''}</Text>
-              <Box flexDirection="row">
-                <Text color="green">+{c.added}</Text>
-                <Text> </Text>
-                <Text color="red">-{c.removed}</Text>
-                <Text dimColor> · {clockTime(c.at)}</Text>
-              </Box>
-              {diff.source === '' ? <Text dimColor>(no diff to show)</Text> : <Code source={diff.source} format="diff" path={c.path} wrap="truncate-end" />}
-              {c.totalLines > lineCount(c.hunks) ? <Text dimColor>(long change: only the first {lineCount(c.hunks)} lines were kept)</Text> : null}
-              {hidden > 0 || v.expanded ? (
-                <Button key="expand" hotkey="v" label={v.expanded ? '⤡ Collapse' : `⤢ Show all (+${hidden} lines)`} onPress={() => setView({ pos: at, expanded: !v.expanded })} />
-              ) : null}
-            </Box>
-          )}
-        </Box>
-      )
-    }
-
-    const listed = rows.filter(r => !r.isUnlisted)
-    const unlisted = rows.filter(r => r.isUnlisted)
-
-    // the [+] details under a row: model, prompt excerpt, last tool calls
-    const details = (key: string, model: string | null, prompt: string | undefined, recent: readonly ToolRecord[], indent: string) => (
-      <Box key={`open-${key}`} flexDirection="column">
-        <Text dimColor wrap="truncate">{`${indent}  model ${model ?? '?'}`}</Text>
-        {prompt ? <Text dimColor wrap="truncate">{`${indent}  prompt "${prompt.replace(/\s+/g, ' ')}"`}</Text> : null}
-        {recent.length === 0 ? <Text dimColor>{`${indent}  no tool calls yet`}</Text> : null}
-        {recent.map((t, i) => (
-          <Text key={`rec-${key}-${i}`} dimColor wrap="truncate" color={t.isError ? 'red' : undefined}>{`${indent}  · ${t.label} ${elapsed(t.ms)}`}</Text>
-        ))}
-      </Box>
-    )
-
-    const agentRow = (row: AgentRow, prefix: string, indent: string) => {
-      const active = isWorking(row)
-      const color = active ? 'yellow' : row.status === 'failed' || row.status === 'killed' ? 'red' : row.status === 'completed' ? 'green' : 'gray'
-      const d = doing(row, active, now, limits)
-      const isOpen = v.open.includes(row.id)
-      return (
-        <Box key={`wrap-${row.id}`} flexDirection="column">
-          <Box key={`agent-${row.id}`} flexDirection="row" gap={1}>
-            <Text dimColor>{prefix}</Text>
-            <Text color={color}>●</Text>
-            <Box flexShrink={1}>
-              <Text wrap="truncate" dimColor={!active}>{`${row.type}${row.task ? ` "${row.task}"` : ''}`}</Text>
-            </Box>
-            <Box flexDirection="row" gap={1} flexShrink={0}>
-              <Text wrap="truncate" color={isCapped(row.model) ? 'magenta' : undefined} bold={isCapped(row.model)}>{short(row.model)}</Text>
-              <Text wrap="truncate" dimColor>{active ? elapsed(now - row.startedAt) : elapsed((row.endedAt ?? now) - row.startedAt)}</Text>
-              <Text wrap="truncate">{`${fmt(row.tokens)} tok`}</Text>
-              <Text wrap="truncate">{`×${row.calls}`}</Text>
-              <Text wrap="truncate">{`✎${row.edits}`}</Text>
-              {row.edits > 0 ? <Button key={`diff-${row.id}`} plain label="[sub_Diff]" onPress={() => openDiffs($, row.id)} /> : null}
-              <Button key={`more-${row.id}`} plain label={isOpen ? '[-]' : '[+]'} onPress={() => toggleOpen($, row.id)} />
-            </Box>
-            {d.now ? <Box flexShrink={1}><Text wrap="truncate" color={d.isWaiting ? undefined : 'cyan'} dimColor={d.isWaiting}>{d.now}</Text></Box> : null}
-            {d.thinking ? <Text dimColor>{d.thinking}</Text> : null}
-            {d.warn ? <Text color={d.level === 'alert' ? 'red' : 'yellow'} bold>{d.warn}</Text> : null}
-          </Box>
-          {isOpen ? details(row.id, row.model, row.prompt, row.recent, indent) : null}
-        </Box>
-      )
-    }
-
-    const md = doing(m, m.isRunning, now, limits)
-    const mainOpen = v.open.includes('main')
+  // The band: our flow on top, whatever else it holds (pin notes, other mods' rows) below it.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!isBand || e.props.hasSurvey) return next(e)
+    const [m, rows, isFolded] = await Promise.all([read($, main), read($, agents), read($, folded), read($, tick)])
+    if (!rows.some(r => !r.isUnlisted)) return next(e) // no subagent yet this session
+    const ui = $.ui.resolve(e)
+    const below = await next(e)
+    const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => !f))
     return (
-      <Box flexDirection="column">
-        <Text bold>{headline(listed, m.isRunning)}</Text>
-        <Box flexDirection="row" gap={1}>
-          <Text color={m.isRunning ? 'yellow' : 'gray'}>●</Text>
-          <Text bold>main</Text>
-          <Text color={isCapped(m.model) ? 'magenta' : undefined} bold={isCapped(m.model)}>{short(m.model)}</Text>
-          <Text dimColor>{m.isRunning ? 'running' : 'idle'}</Text>
-          <Text>{`${fmt(m.tokens)} tok`}</Text>
-          <Text>{`×${m.calls}`}</Text>
-          <Text>{`✎${m.edits}`}</Text>
-          {m.edits > 0 ? <Button key="diff-main" plain label="[main_Diff]" onPress={() => openDiffs($, 'main')} /> : null}
-          <Button key="more-main" plain label={mainOpen ? '[-]' : '[+]'} onPress={() => toggleOpen($, 'main')} />
-          {md.now ? <Box flexShrink={1}><Text wrap="truncate" color={md.isWaiting ? undefined : 'cyan'} dimColor={md.isWaiting}>{md.now}</Text></Box> : null}
-          {md.thinking ? <Text dimColor>{md.thinking}</Text> : null}
-          {md.warn ? <Text color={md.level === 'alert' ? 'red' : 'yellow'} bold>{md.warn}</Text> : null}
-        </Box>
-        {mainOpen ? details('main', m.model, undefined, m.recent, '') : null}
-        {tree(listed).map(({ row, depth, isLast }) => agentRow(row, `${'  '.repeat(depth)}${isLast ? '└' : '├'}`, '  '.repeat(depth + 1)))}
-        {listed.length === 0 ? <Text dimColor>No subagents yet this session.</Text> : null}
-        {unlisted.length > 0 ? (
-          <Box flexDirection="column">
-            <Button key="unlisted" plain label={`${v.showUnlisted ? '▾' : '▸'} unlisted loops (${unlisted.length})`} onPress={() => setView({ showUnlisted: !v.showUnlisted })} />
-            {v.showUnlisted ? unlisted.map(row => agentRow(row, '  ·', '    ')) : null}
-          </Box>
-        ) : null}
-        {lastText ? <Text dimColor wrap="truncate">last: {lastText}</Text> : null}
-      </Box>
+      <ui.Box flexDirection="column">
+        {ours}
+        {below}
+      </ui.Box>
     )
   })
 }

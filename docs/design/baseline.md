@@ -15,7 +15,7 @@
 2. **의도된 복사본**(공유 코드 대신 복사):
    - `modelName` 과 그것이 쓰는 `FAMILIES`·`title`(`model.ts` 2행~`modelName` 끝): `agent-flow/hooks/model.ts` = `qhud/hooks/model.ts`. qhud 쪽에는 `chainName`·`settingsEffort` 가 더 있다.
    - 한쪽을 고치면 다른 쪽도 같은 커밋에서 맞춘다. `scripts/check.sh` 의 `copies` 단계가 위 1쌍을 항상 검사한다.
-3. **I/O 경계**: 플러그인마다 `hooks/register.tsx` 하나만 `'claude-code'` 를 import 하고 `$`(EngineInterface)를 만진다. 시계(`$.clock`)·저장(`$.store`)·네트워크(`$.http`)·프로세스(`$.process`)·모델(`$.model`)·화면(`$.ui`) 접근은 전부 여기다. 나머지 `hooks/*.ts` 는 순수 함수(파싱·계산·문구)이며 현재 시각도 인자로 받는다.
+3. **I/O 경계**: 플러그인마다 `hooks/register.tsx` 하나만 `'claude-code'` 를 import 하고 `$`(EngineInterface)를 만진다. 시계(`$.clock`)·저장(`$.store`)·네트워크(`$.http`)·프로세스(`$.process`)·모델(`$.model`)·화면(`$.ui`) 접근은 전부 여기다. 나머지 `hooks/*.ts` 는 순수 함수(파싱·계산·문구)이며 현재 시각도 인자로 받는다. 예외 한 종류: 화면 렌더 모듈(`hooks/*.tsx`, 예 agent-flow `view.tsx`, 2026-11-08 v2.4.0 결정)은 `$.ui.resolve(e)` 가 돌려준 컴포넌트(Box·Text·Button 등)와 상태·콜백을 인자로만 받아 트리를 돌려준다 — `'claude-code'` 를 import 하지 않고 `$` 를 받지 않는다.
 4. **의존 방향**: `register.tsx` → 순수 모듈 → `../types`. 순수 모듈끼리는 단방향(예: qhud `view`→`weather`, `plan`→`weather`(타입); agent-flow `stats`→`flow`→`model`). 순수 모듈은 `register.tsx` 를 import 하지 않는다.
 5. **도메인 타입**: 플러그인마다 `types/index.d.ts` 한 장(손으로 씀). 앞부분은 도메인 타입, 끝은 `declare module 'claude-code' { … }` 로 호스트 API ambient 선언. 호스트 API 를 새로 쓰면 여기에 선언을 더한다. `.claude-plugin/types/` 는 엔진 생성물, 커밋 안 함.
 6. **인터페이스**: 호스트 API 를 감싸는 어댑터 인터페이스는 두지 않는다. `register.tsx` 가 그 역할(연결 계층)을 한다.
@@ -23,7 +23,7 @@
 8. **캐시**: 별도 캐시 계층 없음. qhud 는 사용량 엔드포인트를 최대 5분마다(`PLAN_EVERY_MS`) 읽고 결과를 atom 에 둔다. git 상태는 갱신 주기마다 `git status` 를 3초 제한으로 실행.
 9. **외부 의존**: `claude-code`(호스트)와 `claude-code/testing`(테스트) 외 0개.
 10. **버전 이중 기록**: 플러그인 버전은 `<mod>/.claude-plugin/plugin.json` 과 `.claude-plugin/marketplace.json` 두 곳. `scripts/check.sh` 가 이름·버전 일치를 검사한다. 묶음 버전은 루트 `VERSION`.
-11. **테스트**: 플러그인마다 `tests/<mod>.test.tsx` 한 장, 순수 모듈만 직접 import 해 검증. `register.tsx` 는 테스트하지 않는다(호스트 필요).
+11. **테스트**: 플러그인마다 `tests/<mod>.test.tsx` 한 장, 순수 모듈만 직접 import 해 검증. `register.tsx` 는 직접 import 하지 않는다(호스트 필요) — agent-flow 처럼 `claude-code/testing` 가짜 호스트로 렌더를 mount 해 검증하는 것은 허용.
 
 ## 근거
 - 플러그인은 사용자가 골라 설치한다(`install --plugins`). 공유 폴더가 있으면 zip·marketplace 의 `source` 단위가 깨지고, 한 플러그인만 설치할 때 의존이 따라가지 않는다.

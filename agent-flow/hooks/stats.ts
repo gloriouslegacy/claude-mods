@@ -1,11 +1,23 @@
 // agent-flow: the run log kept across sessions, and /aflow stats — which agents, on which models,
 // spend the tokens. One entry per finished subagent run; the newest KEEP_LOG are kept.
-import type { LogEntry } from '../types'
+import type { AgentRow, LogEntry } from '../types'
 import { elapsed, fmt, short } from './flow'
 
 export const LOG_KEY = 'log'
 export const KEEP_LOG = 3000
 const DAY_MS = 86_400_000
+
+/** One finished run of a subagent: what it spent since its last logged run. */
+export const logEntry = (row: AgentRow, at: number, cwd: string, ms: number, isAborted: boolean): LogEntry => {
+  const was = row.logged ?? { tokens: 0, calls: 0, edits: 0 }
+  return { at, cwd, type: row.type, task: row.task, model: row.model, tokens: row.tokens - was.tokens, ms, calls: row.calls - was.calls, edits: row.edits - was.edits, isAborted }
+}
+
+/** The stored log as entries; nothing stored yet (or anything else) → none. */
+export const asLog = (raw: unknown): LogEntry[] => (Array.isArray(raw) ? (raw as LogEntry[]) : [])
+
+/** The log with one more entry, the newest KEEP_LOG kept. */
+export const appendLog = (log: readonly LogEntry[], entry: LogEntry): LogEntry[] => [...log, entry].slice(-KEEP_LOG)
 
 /** "/aflow stats 30" → 30; nothing or nonsense → 7 */
 export const statsDays = (args: string): number => {

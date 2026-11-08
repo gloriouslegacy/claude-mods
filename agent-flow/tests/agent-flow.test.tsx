@@ -309,7 +309,7 @@ test('shouldAutoOpen: on, first time, and not up already', () => {
   expect(shouldAutoOpen(true, false, [{ id: 'other' }], 'agent-flow')).toBe(true)
 })
 
-test('autoOpen opens the pane on the first session.start only', async ($, on) => {
+test('autoOpen opens the pane on the first session.start only', { options: { autoOpen: true } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   const opened: string[] = []
   on('session.start', () => ({ cwd: '/p' }))
@@ -339,7 +339,7 @@ test('autoOpen off: session.start does not open the pane', { options: { autoOpen
   expect(opened).toEqual([])
 })
 
-test('autoOpen where no pane is drawn: one toast, once', async ($, on) => {
+test('autoOpen where no pane is drawn: one toast, once', { options: { autoOpen: true } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   const toasts: string[] = []
   on('session.start', () => ({ cwd: '/p' }))
@@ -355,7 +355,7 @@ test('autoOpen where no pane is drawn: one toast, once', async ($, on) => {
   expect(toasts[0]).toContain('/aflow text')
 })
 
-test('autoOpen: a throwing open is swallowed', async ($, on) => {
+test('autoOpen: a throwing open is swallowed', { options: { autoOpen: true } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   on('session.start', () => ({ cwd: '/p' }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
@@ -364,4 +364,106 @@ test('autoOpen: a throwing open is swallowed', async ($, on) => {
   })
   const result = await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   expect(result.cwd).toBe('/p')
+})
+
+const BAND = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
+type On = Parameters<typeof mock.clock>[0]
+
+/** A host whose roster lists one running implementer (a1), with no panes and another mod's row in the band. */
+const bandHost = (on: On) => {
+  const clock = mock.clock(on, { now: 10_000 })
+  let listed = 0
+  on('session.start', () => ({ cwd: '/p' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.panes', () => ({ value: [] }))
+  on('agent.list', () => {
+    listed++
+    return { value: [{ id: 'a1', description: 'Fix the parser', type: 'implementer', status: 'running' as const }] }
+  })
+  on('turn.start', (_$, e) => ({ turnId: e.turnId }))
+  on('turn.step', async function* (_$, e) {
+    return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'tool_use', usage: usage(e.model, 100) }
+  })
+  on('ui.render', ($$, e) => {
+    const { Box, Text } = $$.ui.resolve(e)
+    return (
+      <Box key="engine">
+        <Text>other row</Text>
+      </Box>
+    )
+  })
+  return { clock, listed: () => listed }
+}
+
+test('the band: nothing before a subagent, then a folded headline; [Show] unfolds one line per agent without buttons', async ($, on) => {
+  bandHost(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: /Agent flow/ })).toBeUndefined()
+  expect(await band.find({ text: 'other row' })).toBeDefined()
+
+  await $.turn.start({ text: 'go', turnId: 't' })
+  for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-fable-5-1', messageCount: 1, agentId: 'a1' })) {
+    // drain
+  }
+  // starts folded: the headline and [Show] only, other rows below it
+  expect(await band.find({ text: 'Agent flow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+  expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeUndefined()
+  let drawn = JSON.stringify(await band.drawn())
+  expect(drawn).toContain('[Show]')
+  expect(drawn.indexOf('Agent flow ·')).toBeLessThan(drawn.indexOf('other row'))
+
+  await band.press({ key: 'aflow-fold' })
+  expect(await band.find({ text: 'main' })).toBeDefined()
+  expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
+  drawn = JSON.stringify(await band.drawn())
+  expect(drawn).toContain('[Hide]')
+  expect(drawn).not.toContain('[+]')
+  expect(drawn).not.toContain('more-a1')
+  expect(drawn).toContain('other row')
+
+  // resume / compact / clear keep the chosen Show/Hide
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
+
+  // a survey takes the band
+  const survey = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, hasSurvey: true } })
+  expect(await survey.find({ text: /Agent flow/ })).toBeUndefined()
+})
+
+test('band off: no band; the pane stays', { options: { band: false } }, async ($, on) => {
+  bandHost(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-fable-5-1', messageCount: 1, agentId: 'a1' })) {
+    // drain
+  }
+  const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: /Agent flow/ })).toBeUndefined()
+  expect(await band.find({ text: 'other row' })).toBeDefined()
+})
+
+test('showFlow on: the band starts unfolded', { options: { showFlow: true } }, async ($, on) => {
+  bandHost(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-fable-5-1', messageCount: 1, agentId: 'a1' })) {
+    // drain
+  }
+  const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
+  expect(JSON.stringify(await band.drawn())).toContain('[Hide]')
+})
+
+test('the 2 s tick runs while the band is unfolded, not while it is folded', async ($, on) => {
+  const host = bandHost(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-fable-5-1', messageCount: 1, agentId: 'a1' })) {
+    // drain
+  }
+  const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const before = host.listed()
+  await host.clock.advance(10_000)
+  expect(host.listed()).toBe(before) // folded and no pane: events alone redraw the headline
+  await band.press({ key: 'aflow-fold' })
+  await host.clock.advance(10_000)
+  expect(host.listed()).toBeGreaterThan(before)
 })

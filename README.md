@@ -75,7 +75,9 @@ The board also lists the prompts you type with Enter, whether Claude is working 
 
 ### agent-flow — main agent and subagents in one pane
 
-`/aflow` opens a pane (it also opens by itself when a session starts; turn that off with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session:
+Once a subagent exists, a one-line strip `Agent flow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (the same content as the pane's folded rows, without `[+]` or Diff buttons). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
+
+`/aflow` opens a pane (it no longer opens by itself; turn that on with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session, with details and diffs:
 
 ```
 Agent flow · main + 2 agents · 2 running · 0 waiting
@@ -214,7 +216,8 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 
 ### agent-flow
 
-- The pane opens once when Claude Code starts its first session (setting `agent-flow.autoOpen`, on by default). Resuming or compacting does not reopen it, and an already open pane is left as is. Where no pane can be drawn, a one-time toast points you to `/aflow text`. Open it any time with **`/aflow`**.
+- The strip above the prompt (`agent-flow.band`, on by default) starts folded; `agent-flow.showFlow` (off by default) starts it unfolded. That applies to the first session start only; resuming, compacting or clearing keeps the state you chose.
+- With `agent-flow.autoOpen` on, the pane opens once when Claude Code starts its first session. It is off by default since 2.4.0; users who already saved a value keep it, and to get the old behavior turn it on in `/config`. Resuming or compacting does not reopen it, and an already open pane is left as is. Where no pane can be drawn, a one-time toast points you to `/aflow text`. Open it any time with **`/aflow`**.
 - Click `[+]` on a row for its model, task prompt and last tool calls; `▸ unlisted loops` unfolds the loops the engine does not list.
 - Click `[main_Diff]` / `[sub_Diff]` (or focus the pane with `ctrl+x tab` and move to it). In the diff view: `h` / `l` previous / next change, `v` show all / collapse, `b` back to the flow.
 - A new session starts with an empty flow.
@@ -235,7 +238,9 @@ Use it to see which agents are worth moving to a cheaper model.
 | `agent-flow.slowSeconds` | seconds before a tool call is ⚠ slow | `60` |
 | `agent-flow.slowShellSeconds` | the same for Bash / PowerShell | `180` |
 | `agent-flow.silentSeconds` | seconds before a working agent is ⚠ silent | `120` |
-| `agent-flow.autoOpen` | `true`, `false` — open the pane on session start (once per Claude Code run) | `true` |
+| `agent-flow.band` | `true`, `false` — show the flow above the prompt | `true` |
+| `agent-flow.showFlow` | `true`, `false` — show the flow unfolded at start (first session start only) | `false` |
+| `agent-flow.autoOpen` | `true`, `false` — open the pane on session start (once per Claude Code run) | `false` |
 | `agent-flow.log` | `true`, `false` — log finished subagent runs for stats | `true` |
 
 ---

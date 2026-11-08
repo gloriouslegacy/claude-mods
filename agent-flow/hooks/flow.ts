@@ -140,6 +140,13 @@ export const doing = (
 
 export const fresh = (now: number) => ({ calls: 0, running: [], recent: [], lastSeenAt: now })
 
+/** What a spawn told us before the agent had a row: its prompt, start, type and task. */
+export type Spawn = { prompt: string; at: number; type: string; task: string }
+
+/** A new subagent row, from its spawn when we heard it. */
+export const newRow = (id: string, now: number, s?: Spawn): AgentRow =>
+  ({ id, type: s?.type || 'subagent', task: s?.task || '', model: null, status: 'running', startedAt: s?.at ?? now, tokens: 0, edits: 0, prompt: s?.prompt, ...fresh(now) })
+
 /** One entry of the engine's agent roster, as far as the rows use it. */
 export type RosterEntry = { id: string; type?: string; description?: string; status: string; parentId?: string }
 

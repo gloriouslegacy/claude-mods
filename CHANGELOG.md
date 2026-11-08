@@ -2,6 +2,14 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.4.0 (2026-11-08)
+
+- Added: agent-flow 0.7.0 shows a one-line strip above the prompt once a subagent exists: `Agent flow · main + N agents · R running · W waiting [Show]`, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (same content as the pane's folded rows, no `[+]` or Diff buttons). Details and diffs stay in the `/aflow` pane.
+- New setting `agent-flow.band` (`true`/`false`, default `true`): show the flow above the prompt.
+- New setting `agent-flow.showFlow` (`true`/`false`, default `false`): start with the flow unfolded. Applies to the first session start only; resume, compact and clear keep the state you chose.
+- Changed: default of `agent-flow.autoOpen` is now `false`, so the pane no longer opens by itself. Users who already saved a value keep it; to get the old behavior turn it on in `/config`.
+- Plugins: qhud 0.18.0, pinboard 0.6.0, agent-flow 0.7.0.
+
 ## v2.3.0 (2026-11-05)
 
 - Changed: pinboard 0.6.0 starts each session with the board folded to its header line (`📌 Pins N · » M [Show]`). Click `[Show]` or type `/pin` to unfold it.

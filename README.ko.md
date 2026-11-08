@@ -74,7 +74,9 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 
 ### agent-flow — 메인 에이전트와 서브에이전트를 한 패널에
 
-`/aflow`로 패널을 엽니다(세션이 시작될 때도 자동으로 열리며, `/config`의 `agent-flow.autoOpen`으로 끌 수 있습니다). 세션의 메인 에이전트와 모든 서브에이전트가 보입니다.
+서브에이전트가 생기면 프롬프트 위에 `Agent flow · main + N agents · R running · W waiting [Show]` 한 줄 띠가 pin 메모 줄처럼 접힌 채 나타납니다. `[Show]`/`[Hide]`로 펼치면 main과 서브에이전트가 한 줄씩 보입니다(패널의 접힌 행과 같은 내용이고 `[+]`·Diff 버튼은 없습니다). `/config`의 `agent-flow.band`로 띠를 끄거나 `agent-flow.showFlow`로 펼친 채 시작할 수 있습니다.
+
+`/aflow`로 패널을 엽니다(이제 자동으로 열리지 않으며, 자동으로 열려면 `/config`의 `agent-flow.autoOpen`을 켭니다). 세션의 메인 에이전트와 모든 서브에이전트, 상세와 diff가 보입니다.
 
 ```
 Agent flow · main + 2 agents · 2 running · 0 waiting
@@ -213,7 +215,8 @@ blast-radius, replay-theater, change-tutor(v2.0.0에서 제거)는 이 묶음에
 
 ### agent-flow
 
-- Claude Code를 실행한 뒤 첫 세션이 시작될 때 패널이 한 번 열립니다(설정 `agent-flow.autoOpen`, 기본 켜짐). resume·compact로는 다시 열리지 않고, 이미 열려 있으면 그대로 둡니다. 패널을 그릴 수 없는 환경에서는 `/aflow text`를 쓰라는 토스트가 한 번 나옵니다. 언제든 **`/aflow`**로 열 수 있습니다.
+- 프롬프트 위 띠(`agent-flow.band`, 기본 켜짐)는 접힌 채 시작하고, `agent-flow.showFlow`(기본 꺼짐)를 켜면 펼친 채 시작합니다. 첫 세션 시작에만 적용되며 resume·compact·clear로는 고른 상태가 유지됩니다.
+- `agent-flow.autoOpen`을 켜면 Claude Code를 실행한 뒤 첫 세션이 시작될 때 패널이 한 번 열립니다. 2.4.0부터 기본값이 꺼짐이며, 이미 값을 저장한 사용자는 그대로입니다. 예전처럼 쓰려면 `/config`에서 켜세요. resume·compact로는 다시 열리지 않고, 이미 열려 있으면 그대로 둡니다. 패널을 그릴 수 없는 환경에서는 `/aflow text`를 쓰라는 토스트가 한 번 나옵니다. 언제든 **`/aflow`**로 열 수 있습니다.
 - 줄의 `[+]`를 누르면 모델, 작업 프롬프트, 최근 도구 호출이 펼쳐지고, `▸ unlisted loops`를 누르면 목록에 없는 루프가 펼쳐집니다.
 - `[main_Diff]` / `[sub_Diff]`를 클릭하거나, `ctrl+x tab`으로 패널에 포커스를 준 뒤 이동합니다. diff 화면에서 `h` / `l` 이전·다음 변경, `v` 펼치기·접기, `b` 흐름 화면으로 돌아가기.
 - 새 세션은 빈 화면에서 시작합니다.
@@ -234,7 +237,9 @@ runner       Haiku 5.5    15    260.0k    14%    17.3k       43s    120      0
 | `agent-flow.slowSeconds` | 도구 호출을 ⚠ slow로 표시할 초 | `60` |
 | `agent-flow.slowShellSeconds` | Bash·PowerShell용 같은 기준 | `180` |
 | `agent-flow.silentSeconds` | 작업 중 에이전트를 ⚠ silent로 표시할 초 | `120` |
-| `agent-flow.autoOpen` | `true`, `false` — 세션 시작 때 패널 열기(Claude Code 실행당 한 번) | `true` |
+| `agent-flow.band` | `true`, `false` — 프롬프트 위에 flow 띠 표시 | `true` |
+| `agent-flow.showFlow` | `true`, `false` — 시작할 때 flow를 펼쳐 표시(첫 세션 시작에만) | `false` |
+| `agent-flow.autoOpen` | `true`, `false` — 세션 시작 때 패널 열기(Claude Code 실행당 한 번) | `false` |
 | `agent-flow.log` | `true`, `false` — 서브에이전트 실행 기록(stats용) | `true` |
 
 ---
