@@ -16,7 +16,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Activity, AgentRow, Change, FlowView, MainRow, ToolRecord } from '../types'
 import { counts, creation, normalise } from './diff'
 import type { RawHunk } from './diff'
-import { KEEP_CHANGES, KEEP_LINES, KEEP_RECENT, PROMPT_CHARS, asText, elapsed, fresh, isWorking, mergeRoster, newRow, shortPath, shouldAutoOpen, shouldTick, stepTokens, toolLabel } from './flow'
+import { KEEP_CHANGES, KEEP_LINES, KEEP_RECENT, PROMPT_CHARS, asText, elapsed, foldToRestore, fresh, isWorking, mergeRoster, newRow, shortPath, shouldAutoOpen, shouldTick, stepTokens, toolLabel } from './flow'
 import type { Limits, RosterEntry, Spawn, Usage } from './flow'
 import { LOG_KEY, appendLog, asLog, logEntry, statsDays, statsText } from './stats'
 import { bandView, diffView, flowView } from './view'
@@ -101,12 +101,15 @@ async function toggleOpen($: EngineInterface, id: string): Promise<void> {
   await update($, view, v => ({ ...v, open: v.open.includes(id) ? v.open.filter(x => x !== id) : [...v.open, id] }))
 }
 
-/** Whether our pane is the one shown; when the host cannot say: no, so a band button opens it as before. */
-async function isPaneShown($: EngineInterface): Promise<boolean> {
+/**
+ * Whether our pane is the one shown; when the host cannot say, `ifUnknown`:
+ * false for a band button (it opens the pane as before), true for the tick (it keeps ticking).
+ */
+async function isPaneUp($: EngineInterface, ifUnknown: boolean): Promise<boolean> {
   try {
     return shouldTick(await $.ui.panes(), PANE)
   } catch {
-    return false // unavailable for a moment: treat it as closed
+    return ifUnknown // unavailable for a moment
   }
 }
 
@@ -115,11 +118,11 @@ async function isPaneShown($: EngineInterface): Promise<boolean> {
  * otherwise the view is set to that row's details or diffs and the pane opened (an open one is retitled).
  */
 async function showInPane($: EngineInterface, isSame: (v: FlowView) => boolean, change: (v: FlowView) => FlowView): Promise<void> {
-  if (isSame(await read($, view)) && (await isPaneShown($))) {
+  if (isSame(await read($, view)) && (await isPaneUp($, false))) {
     try {
       await $.ui.close({ id: PANE })
     } catch {
-      return // a hook kept it open: nothing more to do
+      // a hook kept it open: nothing more to do
     }
     return
   }
@@ -155,15 +158,6 @@ async function logRun($: EngineInterface, id: string, ms: number, isAborted: boo
 
 async function stats($: EngineInterface, args: string): Promise<string> {
   return statsText(asLog(await $.store.get(LOG_KEY)), await $.clock.now(), statsDays(args))
-}
-
-/** Whether our pane is up to redraw; when the host cannot say, as before: yes. */
-async function isPaneUp($: EngineInterface): Promise<boolean> {
-  try {
-    return shouldTick(await $.ui.panes(), PANE)
-  } catch {
-    return true // unavailable for a moment: keep ticking
-  }
 }
 
 /** /aflow: no word opens the pane, "text" prints the flow, "stats [days]" sums the run log. */
@@ -212,18 +206,21 @@ export const register: Register = (on, options) => {
   const isAutoOpen = options.autoOpen === true
   const isBand = options.band !== false
   const startFolded = options.showFlow !== true
-  let hasStarted = false // per run: resume, compact and clear send session.start again; a closed pane stays closed, the chosen Show/Hide stays
-  let ticker: ReturnType<EngineInterface['clock']['every']> | undefined // the one 2 s tick, re-armed on each session.start with that session's $
+  let hasStarted = false // per run: resume and compact send session.start again (a closed pane stays closed, the chosen Show/Hide stays); /clear sends none
+  let ticker: ReturnType<EngineInterface['clock']['every']> | undefined // the one 2 s tick, re-armed on each session.start with that session's $; it outlives /clear
+  let chosenFold: boolean | undefined // the Show/Hide last set this run: /clear resets the folded atom, the tick puts this back
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const command = { description: 'Open the Agent flow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
     await $.command.register({ name: 'aflow', ...command })
     ticker?.cancel() // the host keeps timers across session.start, so the last one would tick on beside this
     ticker = $.clock.every(TICK_MS, async () => {
+      const fold = foldToRestore(await read($, folded), chosenFold)
+      if (fold !== undefined) await update($, folded, () => fold)
       const rows = await read($, agents)
       // nothing to redraw while the band is folded or empty and the pane closed, undrawn or a tab behind; /aflow syncs when it opens it
       const isBandOpen = isBand && !(await read($, folded)) && rows.some(r => !r.isUnlisted)
-      if (!isBandOpen && !(await isPaneUp($))) return
+      if (!isBandOpen && !(await isPaneUp($, true))) return
       // a finished agent can be woken again (SendMessage), so look while anything may be working
       if (!(await read($, main)).isRunning && !rows.some(isWorking)) return
       await sync($)
@@ -231,7 +228,7 @@ export const register: Register = (on, options) => {
     })
     const wasStarted = hasStarted
     hasStarted = true // the first session.start decides, whether or not it opened anything
-    if (!wasStarted) await update($, folded, () => startFolded)
+    if (!wasStarted) await update($, folded, () => (chosenFold = startFolded))
     await autoOpen($, isAutoOpen, wasStarted)
     return result
   })
@@ -367,7 +364,7 @@ export const register: Register = (on, options) => {
           v => ({ ...v, mode: 'flow', open: v.open.includes(id) ? v.open : [...v.open, id] }),
         ),
     }
-    const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => !f), act)
+    const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => (chosenFold = !f)), act)
     return (
       <ui.Box flexDirection="column">
         {ours}

@@ -2,6 +2,13 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.5.2 (2026-11-08)
+
+- Fixed: pinboard 0.6.1 keeps the board through `/clear`. `/clear` resets a plugin's session state without a new session start, so the board came back empty and unfolded, and a pin added afterwards was saved under an empty folder key instead of the folder's own list. The board now comes back with the folder's pins and its fold, and new pins save to the folder.
+- Fixed: agent-flow 0.8.2 keeps the strip's Show/Hide choice through `/clear` (it fell back to folded).
+- Changed: agent-flow tidies its pane check and adds a test for a refused pane close; no visible change.
+- Plugins: qhud 0.18.1, pinboard 0.6.1, agent-flow 0.8.2.
+
 ## v2.5.1 (2026-11-08)
 
 - Changed: agent-flow 0.8.1 closes the `/aflow` pane when you press the same strip button again (`[sub_Diff]`, `[main_Diff]` or `[+]`) while the pane shows what that button opened. Another agent's button switches the pane instead; after closing the pane by hand, the button opens it again.

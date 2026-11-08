@@ -203,6 +203,13 @@ export const asText = (
 export const shouldTick = (panes: readonly { id: string; isShown: boolean; isPlaced: boolean }[], id: string): boolean =>
   panes.some(p => p.id === id && p.isPlaced && p.isShown)
 
+/**
+ * /clear sends no session.start but puts every atom back to its initial value: the fold to write back
+ * (the Show/Hide chosen this run), or undefined when the atom still holds it or nothing was chosen yet.
+ */
+export const foldToRestore = (current: boolean, chosen: boolean | undefined): boolean | undefined =>
+  chosen === undefined || current === chosen ? undefined : chosen
+
 /** Whether session.start opens the pane by itself: the setting is on, it has not opened this run, and it is not up already. */
 export const shouldAutoOpen = (isEnabled: boolean, hasOpened: boolean, panes: readonly { id: string }[] | undefined, id: string): boolean =>
   isEnabled && !hasOpened && !(panes ?? []).some(p => p.id === id)

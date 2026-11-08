@@ -18,6 +18,8 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Captured, Pin } from '../types'
 import { HELP, JUMP_GONE, KEEP_PINS, addCaptured, captureOf, delivery, followUp, header, interrupted, isCapture, jumpTo, listing, markerId, markerLabel, parse, prompted, removeCaptured, storeKey, toggleOpen, withRequestId } from './pins'
+import { restoreOf } from './restore'
+import type { Board } from './restore'
 
 const pins = atom({ plugin: 'pinboard', key: 'pins' } as const, [] as Pin[])
 const folder = atom({ plugin: 'pinboard', key: 'folder' } as const, '')
@@ -31,11 +33,41 @@ let turnId = ''
 let urgentPrompt: string | null = null
 const SUBMIT_DELAY_MS = 100
 let unread: { n: number; text: string }[] = []
+// The board as last seen (set at session.start and at a /clear's session.end): a /clear resets the atoms
+// but not this, so restore() puts the folder, its pins and the fold back from it.
+let kept: Board = { folder: '', folded: false }
+const RESTORE_POLL_MS = 500
+// The restore in flight: the tick and a pin change share it, so a late one never writes a stale list over a newer change.
+let restoring: Promise<void> | undefined
+
+/** Puts the board back once a /clear has reset the session atoms; does nothing while they hold it. */
+function restore($: EngineInterface): Promise<void> {
+  restoring ??= restoreNow($).finally(() => {
+    restoring = undefined
+  })
+  return restoring
+}
+
+async function restoreNow($: EngineInterface): Promise<void> {
+  const back = restoreOf(await read($, folder), kept)
+  if (back === undefined) return
+  const stored = await $.store.get(storeKey(back.folder))
+  await update($, folder, () => back.folder)
+  await update($, folded, () => back.folded)
+  await update($, pins, () => (Array.isArray(stored) ? (stored as Pin[]) : []))
+}
 
 async function save($: EngineInterface, change: (list: Pin[]) => Pin[]): Promise<Pin[]> {
+  try {
+    await restore($) // a change right after a /clear goes to this folder's saved list, not a fresh one under `pins:`
+  } catch (err) {
+    // the change still applies to the board; it is saved below only once a folder is known
+    $.ui.log(`restore failed error=${err instanceof Error ? err.message : String(err)}`)
+  }
   const next = change(await read($, pins)).slice(-KEEP_PINS)
   await update($, pins, () => next)
-  await $.store.set(storeKey(await read($, folder)), next)
+  const at = await read($, folder)
+  if (at !== '') await $.store.set(storeKey(at), next) // never under the empty `pins:` key
   return next
 }
 
@@ -121,7 +153,11 @@ export const register: Register = (on, options) => {
   const deliver = options.deliver !== false
   const capture = options.capture !== false
   const startFolded = options.showBoard !== true
-  let hasStarted = false // per run: resume, compact and clear send session.start again; the chosen Show/Hide stays
+  // per run: resume and compact send session.start again and the chosen Show/Hide stays; a /clear sends
+  // none and resets the atoms instead, which the restore tick puts back
+  let hasStarted = false
+  // The restore tick: the host keeps timers across session.start (and a /clear), so each start re-arms it.
+  let ticker: ReturnType<EngineInterface['clock']['every']> | undefined
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -131,8 +167,24 @@ export const register: Register = (on, options) => {
     if (!hasStarted) await update($, folded, () => startFolded)
     hasStarted = true
     await update($, pins, () => (Array.isArray(stored) ? (stored as Pin[]) : []))
+    kept = { folder: cwd, folded: await read($, folded) }
     await $.command.register({ name: 'pin', description: 'Pin a note above the prompt (! important, !! interrupt and read now); done/undo/rm N, clear, list', argumentHint: '[!|!!] <note> | done N | rm N', immediate: true })
+    ticker?.cancel()
+    ticker = $.clock.every(RESTORE_POLL_MS, () =>
+      void restore($).catch(err => {
+        // the board stays empty until the next pin change restores it; logged once, not every tick
+        ticker?.cancel()
+        $.ui.log(`restore failed error=${err instanceof Error ? err.message : String(err)}`)
+      }),
+    )
     return result
+  })
+
+  // A /clear: remember the board, since the atoms go back to their initial values right after this hook.
+  on('session.end', async ($, e, next) => {
+    // a second /clear before the tick restored the first finds the atoms empty: keep what was remembered
+    if (e.reason === 'clear' && (await read($, folder)) !== '') kept = { folder: await read($, folder), folded: await read($, folded) }
+    return next(e)
   })
 
   on('turn.start', async ($, e, next) => {

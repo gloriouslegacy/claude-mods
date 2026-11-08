@@ -154,6 +154,30 @@ test('the same [+] pressed twice: the pane closes and the row stays unfolded', a
   expect(await pane.find({ text: /model claude-fable-5-1/ })).toBeDefined()
 })
 
+test('a close refused by a hook: the press ends without an error, no reopen and no toast', async ($, on) => {
+  const calls: string[] = []
+  const toasts: string[] = []
+  host(on, A1, () => [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }])
+  on('ui.open', (_$, e) => {
+    calls.push(`open ${e.id}`)
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', (_$, e) => {
+    calls.push(`close ${e.id}`)
+    throw new Error('refused')
+  })
+  on('ui.toast', (_$, e) => {
+    toasts.push(JSON.stringify(e))
+    return { value: undefined }
+  })
+  const band = await unfoldedBand($)
+  await band.press({ key: 'aflow-diff-a1' })
+  await band.press({ key: 'aflow-diff-a1' })
+  expect(calls).toEqual(['open agent-flow', 'close agent-flow'])
+  expect(toasts).toEqual([])
+  expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
+})
+
 test('a pane closed by hand: the same button opens it again', async ($, on) => {
   const { calls, closeByHand } = paneHost(on)
   const band = await unfoldedBand($)

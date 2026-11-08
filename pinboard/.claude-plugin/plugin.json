@@ -1,6 +1,6 @@
 {
   "name": "pinboard",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Pinned notes above the prompt: /pin a note (! important, !! interrupt Claude), check it off or remove it with ×; each new pin reaches Claude at once; kept per folder; what you type is listed for the session",
   "author": {
     "name": "gloriouslegacy"
