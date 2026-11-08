@@ -26,54 +26,10 @@ test('the restored folder saves under its own key, never the empty one', () => {
 
 const BAND = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
-test('after a /clear resets the atoms the board comes back with its pins and fold, and a new pin saves to the folder', { options: { deliver: false } }, async ($, on) => {
-  const clock = mock.clock(on, { now: 5 })
-  const store = new Map<string, unknown>()
-  on('store.get', (_$, e) => ({ value: store.get(e.key) }))
-  on('store.set', (_$, e) => {
-    store.set(e.key, e.value)
-    return { value: undefined }
-  })
-  on('session.cwd', () => ({ value: '/p' }))
-  on('session.start', () => ({ cwd: '/p' }))
-  on('session.end', (_$, e) => ({ sessionId: e.sessionId }))
-  on('command.register', (_$, e) => ({ value: { command: e.name } }))
-  const initial: Record<string, unknown> = { folder: '', folded: false, pins: [], captured: [] }
-  let isReset = false
-  on('state.get', (_$, e, next) => (isReset && e.plugin === 'pinboard' ? { value: { value: initial[e.key], version: 0 } } : next(e)))
-  on('state.set', (_$, e, next) => {
-    if (e.plugin === 'pinboard' && e.key === 'folder') isReset = false
-    return next(e)
-  })
-  on('ui.render', ($$, e) => {
-    const { Text } = $$.ui.resolve(e)
-    return <Text>other row</Text>
-  })
-  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
-  await $.command.run({ command: 'pin', args: 'a note' })
-  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: '[Show]' })).toBeDefined() // folded, unlike the reset atom's false
-
-  // /clear: session.end with reason clear, no session.start, then every atom back to its initial value
-  // (the test kit cannot reset another plugin's atoms, so its reads answer the initial values until pinboard writes again)
-  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as never)
-  isReset = true
-  const cleared = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await cleared.find({ text: '📌 Pins 1' })).toBeUndefined()
-  await clock.advance(500)
-  expect(isReset).toBe(false)
-  const restored = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await restored.find({ text: '📌 Pins 1' })).toBeDefined()
-  expect(await restored.find({ text: '[Show]' })).toBeDefined()
-  await restored.press({ key: 'fold' })
-  expect(await restored.find({ text: '1. a note' })).toBeDefined()
-
-  await $.command.run({ command: 'pin', args: 'after clear' })
-  expect((store.get('pins:/p') as { text: string }[]).map(p => p.text)).toEqual(['a note', 'after clear'])
-  expect(store.has('pins:')).toBe(false)
-})
-
-/** A fake host whose pinboard atoms read as reset after host.reset(), each until pinboard writes it again. */
+/**
+ * A fake host whose pinboard atoms read as reset after host.reset(), each until pinboard writes it again
+ * (the test kit cannot reset another plugin's atoms). Its clock is mocked, so every wait is stepped by the test.
+ */
 function clearableHost(on: Parameters<Parameters<typeof test>[2]>[1]) {
   const clock = mock.clock(on, { now: 5 })
   const store = new Map<string, unknown>()
@@ -83,6 +39,7 @@ function clearableHost(on: Parameters<Parameters<typeof test>[2]>[1]) {
     clock,
     store,
     reset: () => Object.keys(initial).forEach(k => resetKeys.add(k)),
+    isReset: (key: string) => resetKeys.has(key),
     getStore: async (key: string): Promise<unknown> => store.get(key),
   }
   on('store.get', async (_$, e) => ({ value: await host.getStore(e.key) }))
@@ -111,7 +68,30 @@ function clearableHost(on: Parameters<Parameters<typeof test>[2]>[1]) {
   return host
 }
 
-const settle = () => new Promise(resolve => setTimeout(resolve, 50))
+test('after a /clear resets the atoms the board comes back with its pins and fold, and a new pin saves to the folder', { options: { deliver: false } }, async ($, on) => {
+  const host = clearableHost(on)
+  await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'pin', args: 'a note' })
+  const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await band.find({ text: '[Show]' })).toBeDefined() // folded, unlike the reset atom's false
+
+  // /clear: session.end with reason clear, no session.start, then every atom back to its initial value
+  await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as never)
+  host.reset()
+  const cleared = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await cleared.find({ text: '📌 Pins 1' })).toBeUndefined()
+  await host.clock.advance(500) // resolves once the tick's restore has settled
+  expect(['folder', 'folded', 'pins'].filter(host.isReset)).toEqual([])
+  const restored = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  expect(await restored.find({ text: '📌 Pins 1' })).toBeDefined()
+  expect(await restored.find({ text: '[Show]' })).toBeDefined()
+  await restored.press({ key: 'fold' })
+  expect(await restored.find({ text: '1. a note' })).toBeDefined()
+
+  await $.command.run({ command: 'pin', args: 'after clear' })
+  expect((host.store.get('pins:/p') as { text: string }[]).map(p => p.text)).toEqual(['a note', 'after clear'])
+  expect(host.store.has('pins:')).toBe(false)
+})
 
 test('a /pin while the restore tick waits on the store keeps the new pin (the tick does not restore a stale list over it)', { options: { deliver: false } }, async ($, on) => {
   const host = clearableHost(on)
@@ -135,11 +115,12 @@ test('a /pin while the restore tick waits on the store keeps the new pin (the ti
   await host.clock.advance(500)
   await isEntered
 
+  // the /pin runs as far as it can while the tick is held (it should wait on the tick's restore), then the tick goes on
   const run = $.command.run({ command: 'pin', args: 'during restore' })
-  await Promise.race([run, settle()])
+  await host.clock.settle()
   release()
   await run
-  await settle()
+  await host.clock.settle()
 
   expect((host.store.get('pins:/p') as { text: string }[]).map(p => p.text)).toEqual(['a note', 'during restore'])
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
