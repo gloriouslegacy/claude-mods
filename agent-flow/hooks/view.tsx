@@ -1,6 +1,6 @@
 // agent-flow: the pane's render, pure — it takes the components $.ui.resolve(e) gave (ui), the state and
 // the callbacks, and returns the tree; it never touches the host itself. bandView draws the band above the
-// prompt: the same headline with [Show]/[Hide] and, unfolded, the rows below without their buttons.
+// prompt: the same headline with [Show]/[Hide] and, unfolded, the rows below with buttons that open the pane.
 //   Agent flow · main + 2 agents · 2 running · 0 waiting
 //   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
 //   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
@@ -19,8 +19,9 @@ export type Actions = {
   toggleOpen: (id: string) => Promise<unknown>
 }
 
-/** A row's buttons: the rows opened with [+] and the actions. Without them a row has no buttons and no details. */
-export type RowButtons = { open: readonly string[]; act: Actions }
+/** A row's buttons: the rows opened with [+], the actions and what the button keys start with (the band's
+ *  differ from the pane's). Without them a row has no buttons and no details. */
+export type RowButtons = { open: readonly string[]; act: Actions; prefix: string }
 
 /** What the flow view draws. */
 export type FlowState = { v: FlowView; m: MainRow; rows: readonly AgentRow[]; lastText: string; now: number; limits: Limits }
@@ -108,8 +109,8 @@ export const agentRow = (ui: Ui, row: AgentRow, prefix: string, indent: string, 
           <Text wrap="truncate">{`${fmt(row.tokens)} tok`}</Text>
           <Text wrap="truncate">{`×${row.calls}`}</Text>
           <Text wrap="truncate">{`✎${row.edits}`}</Text>
-          {btn && row.edits > 0 ? <Button key={`diff-${row.id}`} plain label="[sub_Diff]" onPress={() => btn.act.openDiffs(row.id)} /> : null}
-          {btn ? <Button key={`more-${row.id}`} plain label={isOpen ? '[-]' : '[+]'} onPress={() => btn.act.toggleOpen(row.id)} /> : null}
+          {btn && row.edits > 0 ? <Button key={`${btn.prefix}diff-${row.id}`} plain label="[sub_Diff]" onPress={() => btn.act.openDiffs(row.id)} /> : null}
+          {btn ? <Button key={`${btn.prefix}more-${row.id}`} plain label={isOpen ? '[-]' : '[+]'} onPress={() => btn.act.toggleOpen(row.id)} /> : null}
         </Box>
         {doingTail(ui, d)}
       </Box>
@@ -132,8 +133,8 @@ export const mainRow = (ui: Ui, m: MainRow, now: number, limits: Limits, btn?: R
       <Text>{`${fmt(m.tokens)} tok`}</Text>
       <Text>{`×${m.calls}`}</Text>
       <Text>{`✎${m.edits}`}</Text>
-      {btn && m.edits > 0 ? <Button key="diff-main" plain label="[main_Diff]" onPress={() => btn.act.openDiffs('main')} /> : null}
-      {btn ? <Button key="more-main" plain label={isOpen ? '[-]' : '[+]'} onPress={() => btn.act.toggleOpen('main')} /> : null}
+      {btn && m.edits > 0 ? <Button key={`${btn.prefix}diff-main`} plain label="[main_Diff]" onPress={() => btn.act.openDiffs('main')} /> : null}
+      {btn ? <Button key={`${btn.prefix}more-main`} plain label={isOpen ? '[-]' : '[+]'} onPress={() => btn.act.toggleOpen('main')} /> : null}
       {doingTail(ui, md)}
     </Box>
   )
@@ -145,7 +146,7 @@ export const flowView = (ui: Ui, s: FlowState, act: Actions) => {
   const { v, m, rows, lastText, now, limits } = s
   const listed = rows.filter(r => !r.isUnlisted)
   const unlisted = rows.filter(r => r.isUnlisted)
-  const btn: RowButtons = { open: v.open, act }
+  const btn: RowButtons = { open: v.open, act, prefix: '' }
   return (
     <Box flexDirection="column">
       <Text bold>{headline(listed, m.isRunning)}</Text>
@@ -168,11 +169,13 @@ export const flowView = (ui: Ui, s: FlowState, act: Actions) => {
 export type BandState = { m: MainRow; rows: readonly AgentRow[]; now: number; limits: Limits }
 
 /** The band above the prompt: the pane's headline with [Show]/[Hide]; unfolded, main and the subagent tree
- *  one line each, as the pane's folded rows without their buttons. Unlisted loops and details stay in the pane. */
-export const bandView = (ui: Ui, s: BandState, columns: number, isFolded: boolean, onFold: () => unknown) => {
+ *  one line each, as the pane's folded rows with their buttons; the actions show details and diffs in the
+ *  pane, never here. Unlisted loops stay in the pane. */
+export const bandView = (ui: Ui, s: BandState, columns: number, isFolded: boolean, onFold: () => unknown, act: Actions) => {
   const { Box, Text, Button } = ui
   const { m, rows, now, limits } = s
   const listed = rows.filter(r => !r.isUnlisted)
+  const btn: RowButtons = { open: [], act, prefix: 'aflow-' }
   return (
     <Box flexDirection="column" width={columns}>
       <Box flexDirection="row" gap={1}>
@@ -181,8 +184,8 @@ export const bandView = (ui: Ui, s: BandState, columns: number, isFolded: boolea
         </Box>
         <Button key="aflow-fold" plain label={isFolded ? '[Show]' : '[Hide]'} onPress={onFold} />
       </Box>
-      {isFolded ? null : mainRow(ui, m, now, limits)}
-      {isFolded ? null : tree(listed).map(({ row, depth, isLast }) => agentRow(ui, row, `${'  '.repeat(depth)}${isLast ? '└' : '├'}`, '  '.repeat(depth + 1), now, limits))}
+      {isFolded ? null : mainRow(ui, m, now, limits, btn)}
+      {isFolded ? null : tree(listed).map(({ row, depth, isLast }) => agentRow(ui, row, `${'  '.repeat(depth)}${isLast ? '└' : '├'}`, '  '.repeat(depth + 1), now, limits, btn))}
     </Box>
   )
 }

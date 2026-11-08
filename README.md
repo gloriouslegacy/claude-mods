@@ -75,7 +75,7 @@ The board also lists the prompts you type with Enter, whether Claude is working 
 
 ### agent-flow — main agent and subagents in one pane
 
-Once a subagent exists, a one-line strip `Agent flow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (the same content as the pane's folded rows, without `[+]` or Diff buttons). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
+Once a subagent exists, a one-line strip `Agent flow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (each row has the same `[+]`, `[sub_Diff]` and `[main_Diff]` buttons as the pane, the Diff ones only for an agent that edited files; clicking one opens the `/aflow` pane on that row's detail or diff, while the strip itself stays one line per agent). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
 
 `/aflow` opens a pane (it no longer opens by itself; turn that on with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session, with details and diffs:
 

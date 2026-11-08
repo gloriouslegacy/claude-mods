@@ -395,7 +395,7 @@ const bandHost = (on: On) => {
   return { clock, listed: () => listed }
 }
 
-test('the band: nothing before a subagent, then a folded headline; [Show] unfolds one line per agent without buttons', async ($, on) => {
+test('the band: nothing before a subagent, then a folded headline; [Show] unfolds one line per agent with its buttons', async ($, on) => {
   bandHost(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
@@ -418,8 +418,8 @@ test('the band: nothing before a subagent, then a folded headline; [Show] unfold
   expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeDefined()
   drawn = JSON.stringify(await band.drawn())
   expect(drawn).toContain('[Hide]')
-  expect(drawn).not.toContain('[+]')
-  expect(drawn).not.toContain('more-a1')
+  expect(drawn).toContain('[+]') // v2.5.0 F1: the pane's buttons, under the band's own keys
+  expect(drawn).not.toContain('"more-a1"')
   expect(drawn).toContain('other row')
 
   // resume / compact / clear keep the chosen Show/Hide

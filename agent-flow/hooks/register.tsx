@@ -8,7 +8,8 @@
 // [+] opens the model, the task prompt and the last tool calls. main_Diff / sub_Diff open that agent's
 // changes one diff at a time. Loops the engine's roster does not list (a workflow's agents, engine
 // forks) go in a folded "unlisted loops" group. Once a subagent has run, the band above the prompt shows
-// the headline with [Show]/[Hide] (band; starts folded unless showFlow). Nothing here calls a model; session-only.
+// the headline with [Show]/[Hide] (band; starts folded unless showFlow); its rows' buttons open the pane on
+// that row's details or diffs. Nothing here calls a model; session-only.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
@@ -98,6 +99,23 @@ async function openDiffs($: EngineInterface, agent: string): Promise<void> {
 
 async function toggleOpen($: EngineInterface, id: string): Promise<void> {
   await update($, view, v => ({ ...v, open: v.open.includes(id) ? v.open.filter(x => x !== id) : [...v.open, id] }))
+}
+
+/** A band button: the view set to that row's details or diffs, then the pane opened (an open one is retitled). */
+async function showInPane($: EngineInterface, change: (v: FlowView) => FlowView): Promise<void> {
+  await update($, view, change)
+  let isPlaced: boolean
+  try {
+    ;({ isPlaced } = await $.ui.open({ id: PANE, title: TITLE }))
+  } catch {
+    isPlaced = false // a hook refused it: the band keeps drawing, one toast says so
+  }
+  if (isPlaced) return
+  try {
+    $.ui.toast('Agent flow: the pane could not open here. Use /aflow text.')
+  } catch {
+    return // no toast here either: the band keeps drawing
+  }
 }
 
 async function flowText($: EngineInterface, limits: Limits): Promise<string> {
@@ -314,7 +332,12 @@ export const register: Register = (on, options) => {
     if (!rows.some(r => !r.isUnlisted)) return next(e) // no subagent yet this session
     const ui = $.ui.resolve(e)
     const below = await next(e)
-    const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => !f))
+    const act: Actions = {
+      setView: change => update($, view, old => ({ ...old, ...change })),
+      openDiffs: agent => showInPane($, v => ({ ...v, mode: 'diffs', agent, pos: null, expanded: false })),
+      toggleOpen: id => showInPane($, v => ({ ...v, mode: 'flow', open: v.open.includes(id) ? v.open : [...v.open, id] })),
+    }
+    const ours = bandView(ui, { m, rows, now: await $.clock.now(), limits }, e.props.bodyColumns, isFolded, () => update($, folded, f => !f), act)
     return (
       <ui.Box flexDirection="column">
         {ours}

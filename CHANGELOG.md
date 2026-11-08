@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.5.0 (2026-11-08)
+
+- Changed: agent-flow 0.8.0 shows the pane's buttons in the unfolded strip above the prompt: `[+]` on every row, `[sub_Diff]` / `[main_Diff]` when that agent edited files. Pressing one opens the `/aflow` pane with that row's details or diff; the strip itself stays one line per agent.
+- Changed: the marketplace lists agent-flow before pinboard, so the flow strip can sit above the pin board's line. The host decides the order and this is not guaranteed; an existing install may keep the old order until the plugins are reinstalled.
+- Plugins: qhud 0.18.1, pinboard 0.6.0, agent-flow 0.8.0.
+
 ## v2.4.1 (2026-11-08)
 
 - Fixed: agent-flow 0.7.1 no longer stacks its 2-second refresh timer. Each session start (resume, compact) added another timer, so the pane and the strip above the prompt refreshed several times per tick; now the previous timer is cancelled and only one runs.
