@@ -1,6 +1,6 @@
 {
   "name": "agent-flow",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "A pane (/aflow) with the main agent and every subagent: status, model, tokens, tool calls, what each is doing now with slow/thinking/silent signs, [+] details, unlisted loops, main_Diff / sub_Diff; /aflow stats sums the logged runs by agent and model",
   "author": {
     "name": "gloriouslegacy"
@@ -34,7 +34,7 @@
     "autoOpen": {
       "type": "boolean",
       "title": "Open pane on session start",
-      "description": "Open the Agent flow pane once when Claude Code starts (not again after resume, compact or clear); off: only /aflow opens it",
+      "description": "Open the AFlow pane once when Claude Code starts (not again after resume, compact or clear); off: only /aflow opens it",
       "default": false
     },
     "band": {

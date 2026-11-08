@@ -18,7 +18,7 @@ test('tick timer registers once across repeated session.start', async ($, on) =>
   on('session.start', () => ({ cwd: '/p' }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('turn.start', (_$, e) => ({ turnId: e.turnId }))
-  on('ui.panes', () => ({ value: [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }] }))
+  on('ui.panes', () => ({ value: [{ id: 'agent-flow', title: 'AFlow', isShown: true, isFocused: false, isPlaced: true }] }))
   on('agent.list', () => {
     listed++
     return { value: [] }

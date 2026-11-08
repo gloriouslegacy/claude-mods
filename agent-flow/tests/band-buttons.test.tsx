@@ -4,7 +4,7 @@ import { expect, mock, test } from 'claude-code/testing'
 type On = Parameters<typeof mock.clock>[0]
 
 const BAND = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
-const PANE = { title: 'Agent flow', isFocused: false, bodyColumns: 160, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} }
+const PANE = { title: 'AFlow', isFocused: false, bodyColumns: 160, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} }
 const patch = [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-a', '+b'] }]
 
 type Roster = { id: string; description: string; type: string; status: 'running' }[]
@@ -66,7 +66,7 @@ test('the unfolded band shows [main_Diff], [sub_Diff] and [+]; each opens the pa
   expect(await band.find({ text: /model claude-fable-5-1/ })).toBeUndefined()
   expect(JSON.stringify(await band.drawn())).toContain('[+]')
   const pane = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'Pane', requestId: 'agent-flow', props: PANE })
-  expect(await pane.find({ text: 'Agent flow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+  expect(await pane.find({ text: 'AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
   expect(await pane.find({ text: /model claude-fable-5-1/ })).toBeDefined()
   expect(JSON.stringify(await pane.drawn())).toContain('[-]')
 
@@ -111,7 +111,7 @@ const A2: Roster = [...A1, { id: 'a2', description: 'Write the docs', type: 'doc
 const paneHost = (on: On, roster: Roster = A1) => {
   const calls: string[] = []
   let isShown = false
-  host(on, roster, () => (isShown ? [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }] : []))
+  host(on, roster, () => (isShown ? [{ id: 'agent-flow', title: 'AFlow', isShown: true, isFocused: false, isPlaced: true }] : []))
   on('ui.open', (_$, e) => {
     calls.push(`open ${e.id}`)
     isShown = true
@@ -157,7 +157,7 @@ test('the same [+] pressed twice: the pane closes and the row stays unfolded', a
 test('a close refused by a hook: the press ends without an error, no reopen and no toast', async ($, on) => {
   const calls: string[] = []
   const toasts: string[] = []
-  host(on, A1, () => [{ id: 'agent-flow', title: 'Agent flow', isShown: true, isFocused: false, isPlaced: true }])
+  host(on, A1, () => [{ id: 'agent-flow', title: 'AFlow', isShown: true, isFocused: false, isPlaced: true }])
   on('ui.open', (_$, e) => {
     calls.push(`open ${e.id}`)
     return { value: { isPlaced: true } }

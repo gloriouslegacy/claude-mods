@@ -62,11 +62,11 @@ export const tree = (agents: readonly AgentRow[]): { row: AgentRow; depth: numbe
   return out
 }
 
-/** "Agent flow · main + 2 agents · 3 running · 0 waiting": main counts when it is in a turn. */
+/** "AFlow · main + 2 agents · 3 running · 0 waiting": main counts when it is in a turn. */
 export const headline = (agents: readonly AgentRow[], isMainRunning = false): string => {
   const running = agents.filter(isWorking).length + (isMainRunning ? 1 : 0)
   const waiting = agents.filter(a => !isWorking(a) && (a.status === 'waiting' || a.status === 'idle')).length
-  return `Agent flow · main + ${agents.length} agent${agents.length === 1 ? '' : 's'} · ${running} running · ${waiting} waiting`
+  return `AFlow · main + ${agents.length} agent${agents.length === 1 ? '' : 's'} · ${running} running · ${waiting} waiting`
 }
 
 export const changesOf = (changes: readonly Change[], agent: string): Change[] => changes.filter(c => c.agent === agent)

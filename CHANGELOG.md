@@ -2,6 +2,11 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.6.0 (2026-11-08)
+
+- Changed: agent-flow 0.9.0 shows its name as `AFlow` instead of `Agent flow` on screen: the strip and pane headline (`AFlow · main + N agents · R running · W waiting`), the pane title, toasts, and the `/aflow` and `openOnStart` descriptions. The plugin id, setting keys and the `/aflow` command are unchanged.
+- Plugins: qhud 0.18.1, pinboard 0.6.1, agent-flow 0.9.0.
+
 ## v2.5.2 (2026-11-08)
 
 - Fixed: pinboard 0.6.1 keeps the board through `/clear`. `/clear` resets a plugin's session state without a new session start, so the board came back empty and unfolded, and a pin added afterwards was saved under an empty folder key instead of the folder's own list. The board now comes back with the folder's pins and its fold, and new pins save to the folder.

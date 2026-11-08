@@ -17,7 +17,7 @@ Korean guide: [README.ko.md](README.ko.md)
 | `/pin clear` | `/pin clear` | Remove every done pin |
 | `/pin list` | `/pin list` | Print the board |
 | `/pin` | `/pin` | Fold or unfold the board |
-| `/aflow` | `/aflow` | Open the Agent flow pane (main and subagents: models, tokens, calls, what each does, diffs) |
+| `/aflow` | `/aflow` | Open the AFlow pane (main and subagents: models, tokens, calls, what each does, diffs) |
 | `/aflow text` | `/aflow text` | Print the agent tree as text |
 | `/aflow stats [days]` | `/aflow stats 30` | Sum the logged subagent runs by agent and model (default 7 days) |
 | `/qhud-usage` | `/qhud-usage` | Read the usage endpoint now and print its answer |
@@ -75,12 +75,12 @@ The board also lists the prompts you type with Enter, whether Claude is working 
 
 ### agent-flow — main agent and subagents in one pane
 
-Once a subagent exists, a one-line strip `Agent flow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (each row has the same `[+]`, `[sub_Diff]` and `[main_Diff]` buttons as the pane, the Diff ones only for an agent that edited files; clicking one opens the `/aflow` pane on that row's detail or diff, and clicking the same button again, while the pane shows what that button opened, closes the pane; the strip itself stays one line per agent). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
+Once a subagent exists, a one-line strip `AFlow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (each row has the same `[+]`, `[sub_Diff]` and `[main_Diff]` buttons as the pane, the Diff ones only for an agent that edited files; clicking one opens the `/aflow` pane on that row's detail or diff, and clicking the same button again, while the pane shows what that button opened, closes the pane; the strip itself stays one line per agent). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
 
 `/aflow` opens a pane (it no longer opens by itself; turn that on with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session, with details and diffs:
 
 ```
-Agent flow · main + 2 agents · 2 running · 0 waiting
+AFlow · main + 2 agents · 2 running · 0 waiting
 ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]  Agent Fix the parser 41s
 ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
 └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s

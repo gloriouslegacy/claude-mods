@@ -23,7 +23,7 @@ import { bandView, diffView, flowView } from './view'
 import type { Actions } from './view'
 
 const PANE = 'agent-flow'
-const TITLE = 'Agent flow'
+const TITLE = 'AFlow'
 const TICK_MS = 2000
 
 const main = atom({ plugin: 'agent-flow', key: 'main' } as const, { model: null, isRunning: false, tokens: 0, edits: 0, ...fresh(0) } as MainRow)
@@ -135,7 +135,7 @@ async function showInPane($: EngineInterface, isSame: (v: FlowView) => boolean, 
   }
   if (isPlaced) return
   try {
-    $.ui.toast('Agent flow: the pane could not open here. Use /aflow text.')
+    $.ui.toast('AFlow: the pane could not open here. Use /aflow text.')
   } catch {
     return // no toast here either: the band keeps drawing
   }
@@ -171,7 +171,7 @@ async function run($: EngineInterface, args: string, limits: Limits): Promise<st
   if (!isPlaced) return flowText($, limits)
   // the pane is already open; the engine agent list fills it in when it arrives
   await sync($)
-  return 'Opened Agent flow.'
+  return 'Opened AFlow.'
 }
 
 /** autoOpen: open the pane by itself on the first session.start of this run; never blocks the start. */
@@ -192,7 +192,7 @@ async function autoOpen($: EngineInterface, isEnabled: boolean, hasOpened: boole
   }
   if (isPlaced) return
   try {
-    $.ui.toast('Agent flow: no pane can be drawn here. Use /aflow text.')
+    $.ui.toast('AFlow: no pane can be drawn here. Use /aflow text.')
   } catch {
     // no toast here either: stay silent rather than fail the session start
   }
@@ -211,7 +211,7 @@ export const register: Register = (on, options) => {
   let chosenFold: boolean | undefined // the Show/Hide last set this run: /clear resets the folded atom, the tick puts this back
   on('session.start', async ($, e, next) => {
     const result = await next(e)
-    const command = { description: 'Open the Agent flow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
+    const command = { description: 'Open the AFlow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
     await $.command.register({ name: 'aflow', ...command })
     ticker?.cancel() // the host keeps timers across session.start, so the last one would tick on beside this
     ticker = $.clock.every(TICK_MS, async () => {

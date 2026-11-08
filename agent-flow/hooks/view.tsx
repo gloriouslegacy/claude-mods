@@ -1,7 +1,7 @@
 // agent-flow: the pane's render, pure — it takes the components $.ui.resolve(e) gave (ui), the state and
 // the callbacks, and returns the tree; it never touches the host itself. bandView draws the band above the
 // prompt: the same headline with [Show]/[Hide] and, unfolded, the rows below with buttons that open the pane.
-//   Agent flow · main + 2 agents · 2 running · 0 waiting
+//   AFlow · main + 2 agents · 2 running · 0 waiting
 //   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
 //   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
 //   └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]   Bash npm test 38s  ⚠ slow 38s
