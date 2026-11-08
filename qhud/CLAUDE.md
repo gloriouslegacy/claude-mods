@@ -13,10 +13,12 @@
 | hooks/cache.ts | 프롬프트 캐시 만료 카운트다운 |
 | types/index.d.ts | `TcwView`·`Reading` 등 도메인 타입 + `claude-code` ambient 선언 |
 | tests/qhud.test.tsx | 순수 모듈 테스트 |
+| tests/tick.test.tsx | 반복 session.start 에도 15초 틱 1개(가짜 호스트, `session.usage` 호출 수) |
 테스트: `claude plugin test ./qhud` (검증만: `claude plugin validate ./qhud`)
 규칙:
 - `/api/oauth/usage` 는 비공개 엔드포인트. 응답 형식이 바뀌면 `/qhud-usage` 로 실제 응답을 보고 `plan.ts` 만 고친다. 실패하면 모델별 주간 한도 항목만 숨기고 나머지는 그대로 보인다.
 - 엔드포인트는 `PLAN_EVERY_MS`(5분)보다 자주 부르지 않는다. `git status` 는 3초 제한, 실패 시 git 조각만 생략.
+- 15초 틱: 호스트는 session.start 사이에 타이머를 정리하지 않으므로 `ticker?.cancel()` 뒤 다시 걸어 늘 1개(v0.18.1).
 - 의도된 복사본(`scripts/check.sh` 가 검사): `hooks/model.ts` 2행~`modelName` 끝(`FAMILIES`·`title` 포함) ↔ `agent-flow/hooks/model.ts`. 고치면 그쪽도 맞춘다. `plan.ts` 의 `FAMILIES` 는 별개다.
 - `TcwView` 는 tcw → qhud 이름 변경의 잔재(타입 이름만). `/tcw-usage` 는 my-mods v1.2.0 에서 제거했다.
 - `$.store` 는 쓰지 않는다. 세션 상태는 atom `history`·`clock`·`run`·`view`.

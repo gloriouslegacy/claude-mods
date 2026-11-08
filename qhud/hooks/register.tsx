@@ -144,6 +144,8 @@ export const register: Register = (on, options) => {
     git: options.git !== false,
     plan: options.plan !== false,
   }
+  // The one 15 s tick: the host keeps timers across session.start, so each one re-arms it.
+  let ticker: ReturnType<EngineInterface['clock']['every']> | undefined
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
@@ -154,7 +156,8 @@ export const register: Register = (on, options) => {
     } catch {
       // usage unavailable at start: the chart starts after the first turn
     }
-    $.clock.every(TICK_MS, () => void refresh($, o))
+    ticker?.cancel()
+    ticker = $.clock.every(TICK_MS, () => void refresh($, o))
     await refresh($, o)
     return result
   })

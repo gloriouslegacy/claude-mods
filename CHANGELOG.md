@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.4.1 (2026-11-08)
+
+- Fixed: agent-flow 0.7.1 no longer stacks its 2-second refresh timer. Each session start (resume, compact) added another timer, so the pane and the strip above the prompt refreshed several times per tick; now the previous timer is cancelled and only one runs.
+- Fixed: qhud 0.18.1 has the same fix for its 15-second status refresh timer.
+- Plugins: qhud 0.18.1, pinboard 0.6.0, agent-flow 0.7.1.
+
 ## v2.4.0 (2026-11-08)
 
 - Added: agent-flow 0.7.0 shows a one-line strip above the prompt once a subagent exists: `Agent flow · main + N agents · R running · W waiting [Show]`, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (same content as the pane's folded rows, no `[+]` or Diff buttons). Details and diffs stay in the `/aflow` pane.

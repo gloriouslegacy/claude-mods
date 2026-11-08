@@ -175,11 +175,13 @@ export const register: Register = (on, options) => {
   const isBand = options.band !== false
   const startFolded = options.showFlow !== true
   let hasStarted = false // per run: resume, compact and clear send session.start again; a closed pane stays closed, the chosen Show/Hide stays
+  let ticker: ReturnType<EngineInterface['clock']['every']> | undefined // the one 2 s tick, re-armed on each session.start with that session's $
   on('session.start', async ($, e, next) => {
     const result = await next(e)
     const command = { description: 'Open the Agent flow pane (main and subagents); "text" prints it, "stats [days]" sums the logged runs', argumentHint: '[text | stats [days]]' }
     await $.command.register({ name: 'aflow', ...command })
-    $.clock.every(TICK_MS, async () => {
+    ticker?.cancel() // the host keeps timers across session.start, so the last one would tick on beside this
+    ticker = $.clock.every(TICK_MS, async () => {
       const rows = await read($, agents)
       // nothing to redraw while the band is folded or empty and the pane closed, undrawn or a tab behind; /aflow syncs when it opens it
       const isBandOpen = isBand && !(await read($, folded)) && rows.some(r => !r.isUnlisted)

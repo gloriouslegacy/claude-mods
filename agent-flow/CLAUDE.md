@@ -11,14 +11,15 @@
 | hooks/model.ts | 모델 id → 짧은 이름 (qhud 와 복사본) |
 | hooks/diff.ts | 도구 patch 정규화·변경 수·표시용 자르기 |
 | types/index.d.ts | `AgentRow`·`MainRow`·`Change`·`LogEntry`·`Hunk`·`Ui`(손으로 쓴 Record — validate 가 inline `import('claude-code')` 를 막음) 등 + `claude-code` ambient 선언 |
-| tests/agent-flow.test.tsx | 순수 모듈 테스트 + 가짜 호스트로 Pane·띠·자동 열기 mount. 469줄 — 상한 500, 더하려면 먼저 나눈다 |
+| tests/agent-flow.test.tsx | 순수 모듈 테스트 + 가짜 호스트로 Pane·띠·자동 열기 mount. 469줄 — 상한 500, 새 테스트는 별도 파일로 |
+| tests/tick.test.tsx | 반복 session.start 에도 2초 틱 1개 |
 테스트: `claude plugin test ./agent-flow` (검증만: `claude plugin validate ./agent-flow`)
 규칙:
 - 의도된 복사본(`scripts/check.sh` 가 검사): `hooks/model.ts` 2행~`modelName` 끝(`FAMILIES`·`title` 포함) ↔ `qhud/hooks/model.ts`. 고치면 같은 커밋에서 상대쪽도 맞춘다.
 - `$.store` 키 `log`: 끝난 서브에이전트 실행 1건 1줄, 최근 3000건, `log` 설정이 false 면 쓰지 않는다. 업데이트 후에도 유지돼야 하는 데이터 — 항목 형식을 바꾸면 옛 항목 읽기를 남긴다.
-- 프로세스의 첫 `session.start` 1회(`hasStarted`)에서만 `autoOpen === true` 면 pane 을 열고(실패는 삼킴, 토스트 1회) `showFlow !== true` 면 띠를 접는다. resume·compact·clear 는 사용자가 고른 상태 유지. 접힘은 세션 atom `folded` 전용.
+- 프로세스의 첫 `session.start` 1회(`hasStarted`)에서만 `autoOpen === true` 면 pane 을 열고(실패는 삼킴, 토스트 1회) `showFlow !== true` 면 띠를 접는다. resume·compact(·clear, 2.1.319 타입은 clear 때 안 온다고 적음 — 미확인)는 사용자가 고른 상태 유지. 접힘은 세션 atom `folded` 전용.
 - 띠(명세 docs/spec/v2.4.0.md F2): `band` 꺼짐·`hasSurvey`·roster 서브 0개면 `next(e)` 그대로. 우리 줄 위, `next(e)`(다른 mod) 아래. 펼치면 main·서브 각 1줄, 버튼·상세 없음.
-- 2초 틱은 pane 이 앞에 보이거나(`$.ui.panes()`) 띠가 펼쳐져 있을 때만. 실행 기록·종료 판정은 `turn.complete` 에서 하고 틱에 기대지 않는다.
+- 2초 틱은 pane 이 앞에 보이거나(`$.ui.panes()`) 띠가 펼쳐져 있을 때만. 호스트는 session.start 사이에 타이머를 정리하지 않으므로 `ticker?.cancel()` 뒤 다시 걸어 늘 1개(v0.7.1). 실행 기록·종료 판정은 `turn.complete` 에서 하고 틱에 기대지 않는다.
 - 명령 이름은 `agent…` 로 시작하지 않는다(Claude Code 2.1.302 가 `/agent-flow` 를 명령 목록에서 깨뜨려 그림, v1.3.0 에서 제거).
 - Agent·Monitor 처럼 기다리는 것이 본래 동작인 도구는 slow 표시하지 않는다.
 ADR: docs/design/baseline.md · 명세: docs/spec/v1.4.0.md, docs/spec/v2.0.0.md, docs/spec/v2.4.0.md
