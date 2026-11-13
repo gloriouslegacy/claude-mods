@@ -1,7 +1,7 @@
 // qcompact tests: the confirm steps (idle -> confirm -> running, expiry, presses ignored while running) and button/toast text.
 import { expect, test } from 'claude-code/testing'
 
-import { CONFIRM_MS, expire, failure, label, press } from '../hooks/confirm'
+import { CONFIRM_MS, expire, failure, label, look, press } from '../hooks/confirm'
 
 test('the confirm window lasts five seconds', () => {
   expect(CONFIRM_MS).toBe(5000)
@@ -31,10 +31,23 @@ test('a press after expiry arms again instead of running', () => {
   expect(press(expire(press('idle').phase))).toEqual({ phase: 'confirm', action: 'arm' })
 })
 
-test('the button label follows the phase', () => {
-  expect(label('idle')).toBe('[Compact]')
-  expect(label('confirm')).toBe('[Compact?]')
-  expect(label('running')).toBe('[Compacting…]')
+test('the button label follows the phase, after the clamp icon', () => {
+  expect(label('idle')).toBe('\u{1F5DC} [Compact]')
+  expect(label('confirm')).toBe('\u{1F5DC} [Compact?]')
+  expect(label('running')).toBe('\u{1F5DC} [Compacting…]')
+})
+
+test('the button style follows the phase: cyan bold, yellow bold, then dim', () => {
+  expect(look('idle')).toEqual({ bold: true, color: 'cyan' })
+  expect(look('confirm')).toEqual({ bold: true, color: 'yellow' })
+  expect(look('running')).toEqual({ dimColor: true })
+})
+
+test('every phase on the way gets its own style', () => {
+  const first = press('idle')
+  const second = press(first.phase)
+  expect([look('idle').color, look(first.phase).color, look(second.phase).dimColor]).toEqual(['cyan', 'yellow', true])
+  expect(look(expire(first.phase))).toEqual(look('idle'))
 })
 
 test('the failure toast names the reason', () => {
@@ -66,6 +79,43 @@ test('a cut never splits a surrogate pair', () => {
   expect(failure(`${'x'.repeat(199)}${emoji}`)).toBe(`Compact failed: ${'x'.repeat(199)}${emoji}`)
   expect(failure(`${'x'.repeat(199)}${emoji}z`)).toBe(`Compact failed: ${'x'.repeat(199)}${emoji} …`)
   expect(failure(emoji.repeat(201))).toBe(`Compact failed: ${emoji.repeat(200)} …`)
+})
+
+test('the failure reason turns bidi marks and zero-width/format characters into spaces', () => {
+  expect(failure('a\u{200e}b\u{200f}c\u{061c}d')).toBe('Compact failed: a b c d')
+  expect(failure('a\u{200b}b\u{200c}c\u{200d}d\u{2060}e\u{feff}f')).toBe('Compact failed: a b c d e f')
+  expect(failure('\u{feff}\u{200b}')).toBe('Compact failed: unknown error')
+})
+
+test('a very long failure reason is cut the same way as one just over the limit', () => {
+  const emoji = '\u{1F600}'
+  expect(failure('z'.repeat(100000))).toBe(`Compact failed: ${'z'.repeat(200)} …`)
+  expect(failure(emoji.repeat(100000))).toBe(`Compact failed: ${emoji.repeat(200)} …`)
+  expect(failure(`x${emoji.repeat(250)}`)).toBe(`Compact failed: x${emoji.repeat(199)} …`)
+  expect(failure(`${'x'.repeat(199)}${emoji}${'y'.repeat(300)}`)).toBe(`Compact failed: ${'x'.repeat(199)}${emoji} …`)
+  expect(failure(emoji.repeat(200))).toBe(`Compact failed: ${emoji.repeat(200)}`)
+})
+
+test('the host runtime supports Unicode property escapes', () => {
+  expect(/^\p{Cf}$/u.test('\u{00ad}')).toBe(true)
+  expect(/^\p{Cf}$/u.test('\u{e0041}')).toBe(true)
+  expect(/^\p{Cf}$/u.test('a')).toBe(false)
+})
+
+test('the failure reason turns format characters, tag characters and variation selectors into spaces', () => {
+  expect(failure('a\u{00ad}b\u{e0041}c\u{e007f}d')).toBe('Compact failed: a b c d')
+  expect(failure('a\u{2061}b\u{206a}c\u{fff9}d\u{fe00}e\u{fe0f}f')).toBe('Compact failed: a b c d e f')
+  expect(failure('\u{e0001}\u{00ad}\u{fe0f}')).toBe('Compact failed: unknown error')
+})
+
+test('a huge failure reason with long leading and trailing blank runs gives the same result as trimming it whole', () => {
+  const blank = ` \n\x00\u{200b}\u{e0041}`.repeat(50000)
+  expect(failure(`${blank}abc${blank}`)).toBe('Compact failed: abc')
+  expect(failure(`${blank}${'z'.repeat(300)}`)).toBe(`Compact failed: ${'z'.repeat(200)} …`)
+  expect(failure(`${blank}x${' '.repeat(100000)}y`)).toBe(`Compact failed: x${' '.repeat(199)} …`)
+  expect(failure(`x${' '.repeat(398)}\u{e0041}${' '.repeat(1000)}`)).toBe('Compact failed: x')
+  expect(failure(`${'x'.repeat(199)}\u{e0041}${' '.repeat(1000)}z`)).toBe(`Compact failed: ${'x'.repeat(199)}  …`)
+  expect(failure(blank)).toBe('Compact failed: unknown error')
 })
 
 test('a failure reason that is not a string reads as unknown error', () => {

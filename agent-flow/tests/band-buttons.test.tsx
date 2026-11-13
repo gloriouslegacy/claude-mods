@@ -66,7 +66,7 @@ test('the unfolded band shows [main_Diff], [sub_Diff] and [+]; each opens the pa
   expect(await band.find({ text: /model claude-fable-5-1/ })).toBeUndefined()
   expect(JSON.stringify(await band.drawn())).toContain('[+]')
   const pane = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'Pane', requestId: 'agent-flow', props: PANE })
-  expect(await pane.find({ text: 'AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+  expect(await pane.find({ text: '🤖 AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
   expect(await pane.find({ text: /model claude-fable-5-1/ })).toBeDefined()
   expect(JSON.stringify(await pane.drawn())).toContain('[-]')
 

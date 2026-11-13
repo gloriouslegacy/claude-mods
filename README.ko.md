@@ -74,12 +74,12 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 
 ### agent-flow — 메인 에이전트와 서브에이전트를 한 패널에
 
-서브에이전트가 생기면 프롬프트 위에 `AFlow · main + N agents · R running · W waiting [Show]` 한 줄 띠가 pin 메모 줄처럼 접힌 채 나타납니다. `[Show]`/`[Hide]`로 펼치면 main과 서브에이전트가 한 줄씩 보입니다(각 행에 패널과 같은 `[+]`·`[sub_Diff]`·`[main_Diff]` 버튼이 있고 Diff 버튼은 파일을 고친 에이전트에만 나타납니다. 누르면 `/aflow` 패널이 열려 그 행의 상세나 diff를 보여 주고, 같은 버튼을 다시 누르면(패널이 그 버튼이 연 화면을 보이는 중일 때) 패널을 닫습니다. 띠 자체는 에이전트당 한 줄 그대로입니다). `/config`의 `agent-flow.band`로 띠를 끄거나 `agent-flow.showFlow`로 펼친 채 시작할 수 있습니다.
+서브에이전트가 생기면 프롬프트 위에 `🤖 AFlow · main + N agents · R running · W waiting [Show]`(머리줄은 자홍 굵게) 한 줄 띠가 pin 메모 줄처럼 접힌 채 나타납니다. `[Show]`/`[Hide]`로 펼치면 main과 서브에이전트가 한 줄씩 보입니다(각 행에 패널과 같은 `[+]`·`[sub_Diff]`·`[main_Diff]` 버튼이 있고 Diff 버튼은 파일을 고친 에이전트에만 나타납니다. 누르면 `/aflow` 패널이 열려 그 행의 상세나 diff를 보여 주고, 같은 버튼을 다시 누르면(패널이 그 버튼이 연 화면을 보이는 중일 때) 패널을 닫습니다. 띠 자체는 에이전트당 한 줄 그대로입니다). `/config`의 `agent-flow.band`로 띠를 끄거나 `agent-flow.showFlow`로 펼친 채 시작할 수 있습니다.
 
 `/aflow`로 패널을 엽니다(이제 자동으로 열리지 않으며, 자동으로 열려면 `/config`의 `agent-flow.autoOpen`을 켭니다). 세션의 메인 에이전트와 모든 서브에이전트, 상세와 diff가 보입니다.
 
 ```
-AFlow · main + 2 agents · 2 running · 0 waiting
+🤖 AFlow · main + 2 agents · 2 running · 0 waiting
 ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]  Agent Fix the parser 41s
 ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
 └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
@@ -109,7 +109,7 @@ last: implementer · Edit src/parser.ts
 
 ### qcompact — 프롬프트 위 Compact 버튼
 
-프롬프트 위에 `[Compact]` 버튼이 항상 보입니다. 한 번 누르면 `[Compact?]`로 바뀌고, 5초 안에 다시 누르면 Claude Code 내장 `/compact`를 실행합니다(모델을 따로 부르지 않습니다). 5초가 지나면 `[Compact]`로 돌아갑니다. 압축 중에는 `[Compacting…]`으로 표시되고 그동안의 클릭은 무시됩니다. 설정도 명령도 없습니다.
+프롬프트 위에 `🗜 [Compact]` 버튼(청록 굵게)이 항상 보입니다. 한 번 누르면 `🗜 [Compact?]`(노랑 굵게)로 바뀌고, 5초 안에 다시 누르면 Claude Code 내장 `/compact`를 실행합니다(모델을 따로 부르지 않습니다). 5초가 지나면 `🗜 [Compact]`로 돌아갑니다. 압축 중에는 `🗜 [Compacting…]`(흐리게)으로 표시되고 그동안의 클릭은 무시됩니다. 설정도 명령도 없습니다.
 
 아이디어는 effortless(HeyCubit)에서 얻었으며 코드는 복사하지 않았습니다. (Idea from effortless (HeyCubit).)
 

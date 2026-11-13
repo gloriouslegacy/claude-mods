@@ -6,7 +6,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Action, Phase } from '../types'
-import { CONFIRM_MS, cleanReason, expire, failure, label, press } from './confirm'
+import { CONFIRM_MS, cleanReason, expire, failure, label, look, press } from './confirm'
 
 const phase = atom({ plugin: 'qcompact', key: 'phase' } as const, 'idle' as Phase)
 
@@ -15,9 +15,10 @@ let expiry: ReturnType<EngineInterface['clock']['after']> | undefined
 
 // One transcript line for a failure; never throws, so it is safe as the last handler of a rejection.
 function logFailure($: EngineInterface, what: string, err: unknown): void {
-  // a non-Error rejection carries no trusted text: an empty reason reads as 'unknown error'
-  const reason = err instanceof Error ? err.message : ''
   try {
+    // a non-Error rejection carries no trusted text: an empty reason reads as 'unknown error';
+    // read inside the try, since a message getter may throw
+    const reason = err instanceof Error ? err.message : ''
     // ui.log shows in the transcript, so only failures are logged; the host adds the plugin name
     $.ui.log(`${what} failed error=${cleanReason(reason)}`)
   } catch {
@@ -34,17 +35,33 @@ async function onPress($: EngineInterface): Promise<void> {
     return next.phase
   })
   if (action === 'arm') {
-    expiry?.cancel()
+    try {
+      expiry?.cancel()
+    } catch (err) {
+      // the phase is already confirm: a throwing cancel must not skip the fresh timer below, or the button
+      // would stay at [Compact?] with nothing to expire it
+      logFailure($, 'cancel expiry', err)
+    }
     expiry = $.clock.after(CONFIRM_MS, () => void update($, phase, expire).catch(err => logFailure($, 'expire', err)))
     return
   }
   if (action !== 'run') return
-  expiry?.cancel()
+  try {
+    expiry?.cancel()
+  } catch (err) {
+    // the phase is already running: a throwing cancel must not skip the compact or the reset to idle below;
+    // a stale expiry that still fires leaves running alone
+    logFailure($, 'cancel expiry', err)
+  }
   expiry = undefined
   try {
     await $.command.run({ command: 'compact' })
   } catch (err) {
-    $.ui.toast(failure(err instanceof Error ? err.message : ''))
+    try {
+      $.ui.toast(failure(err instanceof Error ? err.message : ''))
+    } catch {
+      // a throwing toast (or message getter) must not skip the log line or the reset to idle below
+    }
     logFailure($, 'compact', err)
   } finally {
     try {
@@ -61,12 +78,15 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
     const now = await read($, phase)
-    const { Box, Button } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
     const below = await next(e)
     return (
       <Box flexDirection="column">
         <Box flexDirection="row">
-          <Button key="compact" plain dimColor={now === 'running'} label={label(now)} onPress={() => void onPress($).catch(err => logFailure($, 'press', err))} />
+          {/* Button has no color prop: the styled Text child is drawn in place of the label, which still names it */}
+          <Button key="compact" plain label={label(now)} onPress={() => void onPress($).catch(err => logFailure($, 'press', err))}>
+            <Text {...look(now)}>{label(now)}</Text>
+          </Button>
         </Box>
         {below}
       </Box>

@@ -75,12 +75,12 @@ The board also lists the prompts you type with Enter, whether Claude is working 
 
 ### agent-flow — main agent and subagents in one pane
 
-Once a subagent exists, a one-line strip `AFlow · main + N agents · R running · W waiting [Show]` appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (each row has the same `[+]`, `[sub_Diff]` and `[main_Diff]` buttons as the pane, the Diff ones only for an agent that edited files; clicking one opens the `/aflow` pane on that row's detail or diff, and clicking the same button again, while the pane shows what that button opened, closes the pane; the strip itself stays one line per agent). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
+Once a subagent exists, a one-line strip `🤖 AFlow · main + N agents · R running · W waiting [Show]` (headline in magenta bold) appears above the prompt, folded like the pin board's line. `[Show]` / `[Hide]` unfolds one line each for main and every subagent (each row has the same `[+]`, `[sub_Diff]` and `[main_Diff]` buttons as the pane, the Diff ones only for an agent that edited files; clicking one opens the `/aflow` pane on that row's detail or diff, and clicking the same button again, while the pane shows what that button opened, closes the pane; the strip itself stays one line per agent). Turn the strip off with `agent-flow.band`, or start it unfolded with `agent-flow.showFlow`, in `/config`.
 
 `/aflow` opens a pane (it no longer opens by itself; turn that on with `agent-flow.autoOpen` in `/config`) with the main agent and every subagent of the session, with details and diffs:
 
 ```
-AFlow · main + 2 agents · 2 running · 0 waiting
+🤖 AFlow · main + 2 agents · 2 running · 0 waiting
 ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]  Agent Fix the parser 41s
 ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
 └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
@@ -110,7 +110,7 @@ The pane shows this session's agents only, and `/aflow stats` records are kept a
 
 ### qcompact — a Compact button above the prompt
 
-A `[Compact]` button is always shown above the prompt. Click it once and it reads `[Compact?]`; click again within 5 seconds to run Claude Code's built-in `/compact` (no model is called separately). If the 5 seconds pass, it goes back to `[Compact]`. While compacting it reads `[Compacting…]` and clicks are ignored. No settings and no commands.
+A `🗜 [Compact]` button (cyan bold) is always shown above the prompt. Click it once and it reads `🗜 [Compact?]` (yellow bold); click again within 5 seconds to run Claude Code's built-in `/compact` (no model is called separately). If the 5 seconds pass, it goes back to `🗜 [Compact]`. While compacting it reads `🗜 [Compacting…]` (dim) and clicks are ignored. No settings and no commands.
 
 Idea from effortless (HeyCubit); no code was copied.
 

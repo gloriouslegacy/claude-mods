@@ -12,7 +12,7 @@ test('helpers', () => {
   expect(fmt(4_100)).toBe('4.1k')
   expect(elapsed(125_000)).toBe('2m05s')
   expect(tree([row('a'), row('b'), row('c', 'a')]).map(t => `${t.depth}${t.row.id}${t.isLast ? '.' : ''}`)).toEqual(['0a', '1c.', '0b.'])
-  expect(headline([row('a'), { ...row('b'), status: 'completed' }])).toBe('AFlow · main + 2 agents · 1 running · 0 waiting')
+  expect(headline([row('a'), { ...row('b'), status: 'completed' }])).toBe('🤖 AFlow · main + 2 agents · 1 running · 0 waiting')
   expect(toolLabel('Edit', { file_path: '/a/b/c/src/parser.ts' })).toBe('Edit .../c/src/parser.ts')
   expect(toolLabel('Bash', { command: 'npm   test' })).toBe('Bash npm test')
   expect(toolLabel('mcp__kiwoom__get_quote', { query: 'x' })).toBe('get_quote x')
@@ -70,8 +70,9 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(opened).toEqual(['agent-flow'])
     const pane = { title: 'AFlow', isFocused: false, bodyColumns: 100, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} }
     const ui = await $.ui.mount({ plugin: 'agent-flow', surface, component: 'Pane', requestId: 'agent-flow', props: pane })
-    expect(await ui.find({ text: 'AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+    expect(await ui.find({ text: '🤖 AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
     const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn).toMatch(/"color":"magenta","bold":true[^}]*},"children":\["🤖 AFlow · main/)
     expect(drawn).toContain('"children":["38.2k tok"]')
     expect(drawn).toContain('"children":["22.7k tok"]')
     expect(drawn).toMatch(/"color":"magenta","bold":true[^}]*},"children":\["Fable 5\.1"\]/)
@@ -111,13 +112,13 @@ test('a subagent shows as working from its first request to its own turn.complet
   const ui = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'Pane', requestId: 'agent-flow', props: pane })
 
   await stepOf()
-  expect(await ui.find({ text: 'AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
+  expect(await ui.find({ text: '🤖 AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
   await $.turn.complete(done)
-  expect(await ui.find({ text: 'AFlow · main + 1 agent · 0 running · 0 waiting' })).toBeDefined()
+  expect(await ui.find({ text: '🤖 AFlow · main + 1 agent · 0 running · 0 waiting' })).toBeDefined()
 
   roster = 'running' // woken by a message from main
   await stepOf()
-  expect(await ui.find({ text: 'AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
+  expect(await ui.find({ text: '🤖 AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
 })
 
 test('what each loop does now, slow and silent warnings, [+] details, unlisted loops and the text form', async ($, on) => {
@@ -152,7 +153,7 @@ test('what each loop does now, slow and silent warnings, [+] details, unlisted l
   expect(await ui.find({ text: '×2' })).toBeDefined()
   expect(await ui.find({ text: 'Bash npm test 0s' })).toBeDefined()
   expect(await ui.find({ text: '▸ unlisted loops (1)' })).toBeDefined()
-  expect(await ui.find({ text: 'AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
+  expect(await ui.find({ text: '🤖 AFlow · main + 1 agent · 1 running · 0 waiting' })).toBeDefined()
 
   await clock.advance(32_000)
   expect(await ui.find({ text: /⚠ slow/ })).toBeUndefined() // a shell call has 3 minutes
@@ -407,9 +408,10 @@ test('the band: nothing before a subagent, then a folded headline; [Show] unfold
     // drain
   }
   // starts folded: the headline and [Show] only, other rows below it
-  expect(await band.find({ text: 'AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+  expect(await band.find({ text: '🤖 AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
   expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeUndefined()
   let drawn = JSON.stringify(await band.drawn())
+  expect(drawn).toMatch(/"color":"magenta","bold":true[^}]*},"children":\["🤖 AFlow · main/)
   expect(drawn).toContain('[Show]')
   expect(drawn.indexOf('AFlow ·')).toBeLessThan(drawn.indexOf('other row'))
 

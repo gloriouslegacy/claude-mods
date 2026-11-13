@@ -11,3 +11,5 @@ docs/issue/
 docs/issue/dispatch-log*.md
 # per-machine editor config extending the engine-generated types above
 */tsconfig.json
+# local settings backups (made by tools that rewrite settings.local.json)
+.claude/settings.local.json*.bak

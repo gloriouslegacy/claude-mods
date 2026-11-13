@@ -2,6 +2,14 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.8.0 (2026-11-13)
+
+- Changed: qcompact 0.2.0 puts a 🗜 icon before the button label and colors it by state: `🗜 [Compact]` is cyan bold, `🗜 [Compact?]` is yellow bold, `🗜 [Compacting…]` is dim. Click behavior is unchanged.
+- Changed: agent-flow 0.10.0 starts its headline with 🤖 (`🤖 AFlow · main + N agents · R running · W waiting`) and draws it magenta bold in the strip and the pane. `/aflow text` gets the icon but no color.
+- Fixed: qcompact hardens its failure-message cleanup: more invisible and format characters are stripped, long messages are cut before they are processed, and error paths no longer throw (a failing toast or message read cannot leave the button stuck on `[Compacting…]`).
+- No setting keys changed.
+- Plugins: qhud 0.18.1, pinboard 0.6.1, agent-flow 0.10.0, qcompact 0.2.0.
+
 ## v2.7.0 (2026-11-13)
 
 - Added: qcompact 0.1.0, a new plugin. A `[Compact]` button is always shown above the prompt; click it once to get `[Compact?]`, click again within 5 seconds to run Claude Code's built-in `/compact` (no model is called separately). It reads `[Compacting…]` while running. No settings and no commands. Idea from effortless (HeyCubit); no code was copied.
