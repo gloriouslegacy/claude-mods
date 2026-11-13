@@ -11,7 +11,7 @@
 | `agent-flow/` | `/aflow` pane: 메인·서브에이전트 상태·모델·토큰·멈춤 신호·diff, 실행 기록 통계 | 호스트 `claude-code`(`$.agent.list`·`$.store`) |
 | `scripts/` | 저장소 도구: `check.sh`(버전 일치 + validate + test), 설치기 `install.sh`+`install-lib.sh`·`install.ps1`+`install-lib.ps1`(진입 파일 + lib 짝). `bump-version.mjs` 는 계획만 | `claude`·`node` CLI, `.claude-plugin/marketplace.json`, 각 `plugin.json` |
 
-저장소 단위 파일: `.claude-plugin/marketplace.json`(플러그인 목록·버전), `VERSION`(묶음 버전), `CHANGELOG.md`, `README.md`·`README.ko.md`, `.github/workflows/`(ci·release).
+저장소 단위 파일: `.claude-plugin/marketplace.json`(플러그인 목록·버전), `VERSION`(묶음 버전), `CHANGELOG.md`, `README.md`·`README.ko.md`, `.github/workflows/`(ci·release·mirror-gitlab).
 
 ## 의존 방향
 

@@ -68,7 +68,8 @@ claude-mods/                          ← 저장소 루트
 ├── .github/
 │   ├── workflows/
 │   │   ├── ci.yml                    ← PR·push 때 validate/test, 스크립트 정적 검사
-│   │   └── release.yml               ← v* 태그 push 때 zip·체크섬 만들고 Release 게시
+│   │   ├── release.yml               ← v* 태그 push 때 zip·체크섬 만들고 Release 게시
+│   │   └── mirror-gitlab.yml         ← main·태그 push 때 GitLab 사본으로 단방향 미러
 │   ├── dependabot.yml                ← 액션 버전 월 1회 갱신
 │   └── pull_request_template.md
 ├── docs/
@@ -163,6 +164,7 @@ Rulesets에서 태그 패턴 `v*` 대상 규칙을 만든다: 삭제 금지, 덮
 |---|---|---|
 | `.github/workflows/ci.yml` | PR, `main` push, 매주 월요일 09:17 KST, 수동 | `check` 잡: Claude Code 최신판 설치 → `scripts/check.sh`(이름·버전 일치 + 복사본 1쌍 본문 비교(목록은 `docs/structure.md`) + 플러그인 3개 validate·test) → `VERSION`과 `CHANGELOG.md` 단락 확인. `scripts` 잡: Ubuntu·macOS·Windows에서 정적 검사와 `--dry-run`(PowerShell 7과 5.1 둘 다). `report` 잡: 주간 실행이 실패하면 이슈를 하나 열고, 이미 열려 있으면 댓글을 단다 |
 | `.github/workflows/release.yml` | `v*` 태그 push | `check.sh` → 태그·`VERSION`·`CHANGELOG` 일치 확인 → 설치기 네 파일 존재 확인(하나라도 없으면 실패) → zip 생성(제외 목록은 3장, 설치기 네 파일과 `docs/migration/`도 넣는다) → `SHA256SUMS.txt` → Release 게시(노트는 해당 CHANGELOG 단락, `-rc.N` 같은 태그는 사전 릴리스) |
+| `.github/workflows/mirror-gitlab.yml` | `main` push, 태그 push, 수동 | `main` 과 모든 태그를 `gitlab.com/gloriouslegacy/claude-mods` 로 강제 push(`--prune`, 단방향 — GitLab 은 읽기 전용 사본). secret `GITLAB_TOKEN`(GitLab project access token, Maintainer, `write_repository`) 필요, 만료되면 이 워크플로만 실패한다 |
 | `.github/dependabot.yml` | 매월 | 워크플로가 쓰는 액션 버전 갱신 PR |
 | `.github/pull_request_template.md` | PR 작성 시 | 버전·CHANGELOG·README 두 벌 체크리스트 |
 

@@ -1,0 +1,42 @@
+# mirror-gitlab — push main and every tag to the GitLab copy (gitlab.com/gloriouslegacy/claude-mods).
+# One-way: GitLab is a read-only copy. Branches and tags that exist only there are pruned on the next run.
+# Needs the repository secret GITLAB_TOKEN (GitLab project access token, Maintainer, write_repository).
+# GitLab's protected main must allow force push, or a rewritten main will be rejected.
+name: Mirror to GitLab
+
+on:
+  push:
+    branches: [main]
+    tags: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-to-gitlab
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push branches and tags to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_PATH: gloriouslegacy/claude-mods
+        run: |
+          set -euo pipefail
+          # origin/HEAD would be pushed as a branch named "HEAD"
+          git update-ref -d refs/remotes/origin/HEAD || true
+          # The token goes through a credential helper, never the command line or URL.
+          # Explicit refspecs instead of --mirror: --mirror tries to delete GitLab's internal refs (refs/merge-requests) and fails.
+          git -c credential.helper='!f() { echo "username=oauth2"; echo "password=${GITLAB_TOKEN}"; }; f' \
+            push --force --prune "https://gitlab.com/${GITLAB_PATH}.git" \
+            'refs/remotes/origin/*:refs/heads/*' \
+            'refs/tags/*:refs/tags/*'
