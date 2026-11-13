@@ -1,16 +1,17 @@
-# 세션 메모 (갱신 2026-11-13 · b504a0f 이후)
+# 세션 메모 (갱신 2026-11-13 · v2.7.0 da1e36d 이후)
 
 ## 끝낸 것
-- v2.4.1~v2.6.0 릴리스 완료(git log·CHANGELOG). /clear 실측(2.1.319)과 복구 방식은 agent-flow·pinboard `CLAUDE.md`.
-- 2026-11-09 빈 줄 조사 종결 — 띠 아래·qhud 위 빈 줄 모두 호스트 여백, 우리 코드로 못 고침. `⚠qhud:` 접두어는 line 배치 정상 표시.
-- 2026-11-13 GitLab 미러 적용(b504a0f): `.github/workflows/mirror-gitlab.yml`(claudeOrchestration 것 복사, 대상 `gloriouslegacy/claude-mods`, checkout@v7). secret `GITLAB_TOKEN` = GitLab project access token `github-mirror-token`(write_repository, 2026-11-13 생성). 첫 실행 성공 — main + 태그 11개.
-  - 단방향·`--force --prune`: GitLab 은 읽기 전용 사본.
-  - GitLab main 보호 브랜치 force push 기본 꺼짐 → 이력 재작성 시에만 켜야 함.
-  - 토큰 만료 시 이 워크플로만 조용히 실패 → 새 토큰 + `gh secret set GITLAB_TOKEN`.
+- v2.4.1~v2.6.0 릴리스(git log·CHANGELOG). /clear 실측(2.1.319)과 복구 방식은 agent-flow·pinboard `CLAUDE.md`.
+- 빈 줄 조사 종결(11-09): 띠 아래·qhud 위 빈 줄은 호스트 여백.
+- GitLab 미러(b504a0f): `.github/workflows/mirror-gitlab.yml`, secret `GITLAB_TOKEN`(project access token `github-mirror-token`, 11-13 생성). 단방향 `--force --prune`. 토큰 만료 시 조용히 실패 → 새 토큰 + `gh secret set GITLAB_TOKEN`.
+- 외부 모드 10개 조사(11-13) → effortless Compact 버튼 아이디어만 채택.
+- v2.7.0 (da1e36d, 태그·release·mirror 성공): 새 플러그인 qcompact 0.1.0 — 입력창 위 [Compact], 5초 안 두 번 눌러 `$.command.run({command:'compact'})`. 명세 `docs/spec/v2.7.0.md`, 안내 `qcompact/CLAUDE.md`. 테스트 13개, 보안 검토 3회(높음·중간 없음).
+- 설치기 실측(11-13, Claude Code 2.1.323): zip 옆 `install.sh` 로 v2.7.0 설치 성공 — 기존 3개는 update, qcompact 는 새로 `plugin install` 경로로 설치됨.
 
 ## 열린 것
-- 선택: 설치본 marketplace 갱신 후 띠 `AFlow ·` 확인, `/pin test` → /clear → 핀 유지 실측.
-- 프로세스 둘이 같은 pinboard store 파일을 공유할 때 덮어쓰기 여부 [모름].
+- qcompact 화면 동작 미확인: 5초 만료, 두 번 눌러 압축, `[Compacting…]` 이 압축 끝까지 남는지(= `$.command.run` resolve 시점), 핫 리로드 뒤 `confirm` 잔류. 문제면 v2.7.1.
+- 보안 낮음 4건 보류: `logFailure` 의 `err.message` 읽기를 try 안으로, catch 안 toast try, LRM·ZW 문자 치환, `Array.from` 전 선절단.
+- 선택: 설치본에서 띠 `AFlow ·` 확인, `/pin` → /clear → 핀 유지 실측. pinboard store 동시 쓰기 [모름].
 
 ## 다음에
-- 게이트 self_protect 오탐 수정은 claudeOrchestration(fable) 레포에서(`docs/issue/agent-issue.md`).
+- 게이트 self_protect 오탐(인자·heredoc 속 글롭 조각, 11-13 약 35건)은 claudeOrchestration(fable) 레포에서(`docs/issue/agent-issue.md`).
