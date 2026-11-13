@@ -1,0 +1,9 @@
+{
+  "name": "qcompact",
+  "version": "0.1.0",
+  "description": "A [Compact] button above the prompt: press it twice within 5 seconds to run the built-in /compact",
+  "author": {
+    "name": "gloriouslegacy"
+  },
+  "types": "./types/index.d.ts"
+}

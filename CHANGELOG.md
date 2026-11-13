@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.7.0 (2026-11-13)
+
+- Added: qcompact 0.1.0, a new plugin. A `[Compact]` button is always shown above the prompt; click it once to get `[Compact?]`, click again within 5 seconds to run Claude Code's built-in `/compact` (no model is called separately). It reads `[Compacting…]` while running. No settings and no commands. Idea from effortless (HeyCubit); no code was copied.
+- Changed: the marketplace and both installers (`install.sh`, `install.ps1`) list qcompact, so the install script now installs four plugins by default.
+- Plugins: qhud 0.18.1, pinboard 0.6.1, agent-flow 0.9.0, qcompact 0.1.0.
+
 ## v2.6.0 (2026-11-08)
 
 - Changed: agent-flow 0.9.0 shows its name as `AFlow` instead of `Agent flow` on screen: the strip and pane headline (`AFlow · main + N agents · R running · W waiting`), the pane title, toasts, and the `/aflow` and `openOnStart` descriptions. The plugin id, setting keys and the `/aflow` command are unchanged.

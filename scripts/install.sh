@@ -19,7 +19,7 @@
 
 REPO="gloriouslegacy/claude-mods"
 MARKET="my-mods"
-ALL_PLUGINS="qhud pinboard agent-flow"
+ALL_PLUGINS="qhud pinboard agent-flow qcompact"
 # RETIRED is read by install-lib.sh
 # shellcheck disable=SC2034
 RETIRED="blast-radius replay-theater change-tutor"

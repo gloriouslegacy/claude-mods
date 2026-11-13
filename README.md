@@ -1,6 +1,6 @@
 # my-mods
 
-Three Claude Code mods (plugins of function hooks). Requires **Claude Code 2.1.287 or later**.
+Four Claude Code mods (plugins of function hooks). Requires **Claude Code 2.1.287 or later**.
 Korean guide: [README.ko.md](README.ko.md)
 
 ---
@@ -108,6 +108,12 @@ last: implementer · Edit src/parser.ts
 
 The pane shows this session's agents only, and `/aflow stats` records are kept across sessions. No tokens spent: it reads what the engine already has. `/aflow text` prints the same tree as text, and where no pane can be drawn (a `-p` run, an editor extension) `/aflow` prints it that way by itself.
 
+### qcompact — a Compact button above the prompt
+
+A `[Compact]` button is always shown above the prompt. Click it once and it reads `[Compact?]`; click again within 5 seconds to run Claude Code's built-in `/compact` (no model is called separately). If the 5 seconds pass, it goes back to `[Compact]`. While compacting it reads `[Compacting…]` and clicks are ignored. No settings and no commands.
+
+Idea from effortless (HeyCubit); no code was copied.
+
 ---
 
 ## 2. Install
@@ -129,7 +135,7 @@ Expand-Archive my-mods-*.zip -DestinationPath .
 powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 ```
 
-Run from the unzipped release, the script installs that bundle (no download, no checksum step). Run it on its own (with `gh` logged in or `GITHUB_TOKEN` set) and it downloads the latest release and checks it against `SHA256SUMS.txt`. It installs all three plugins in user scope, puts the files in `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods` (on Windows `%USERPROFILE%\.claude\claude-mods`), and registers the `my-mods` marketplace from there. WSL has its own `~/.claude`, separate from Windows: install in each environment you use.
+Run from the unzipped release, the script installs that bundle (no download, no checksum step). Run it on its own (with `gh` logged in or `GITHUB_TOKEN` set) and it downloads the latest release and checks it against `SHA256SUMS.txt`. It installs all four plugins in user scope, puts the files in `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods` (on Windows `%USERPROFILE%\.claude\claude-mods`), and registers the `my-mods` marketplace from there. WSL has its own `~/.claude`, separate from Windows: install in each environment you use.
 
 The release carries four installer files at the top of `my-mods/`: `install.sh` + `install-lib.sh` and `install.ps1` + `install-lib.ps1`. Keep each pair together; the entry file looks for its lib beside itself, in the bundle, and in the install folder's `current` / `previous`.
 
@@ -137,7 +143,7 @@ If you sync `~/.claude` between machines (dotfiles), the install folder travels 
 
 | Option (bash / PowerShell) | Does |
 |---|---|
-| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all three) |
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | Only some plugins (default: all four) |
 | `--version v1.0.0` / `-Version v1.0.0` | A given release (default: latest) |
 | `--zip <file>` `--sums <file>` / `-Zip <file>` `-Sums <file>` | A zip you already have; `SHA256SUMS.txt` must sit beside it, or pass `--sums` |
 | `--dir <path>` / `-Dir <path>` | Install folder (not your home folder, a drive root or the Claude config folder itself) |
@@ -154,6 +160,7 @@ claude plugin marketplace add ./
 claude plugin install qhud@my-mods --scope user
 claude plugin install pinboard@my-mods --scope user
 claude plugin install agent-flow@my-mods --scope user
+claude plugin install qcompact@my-mods --scope user
 ```
 
 - `--scope user` loads them in every project, in the terminal and in the desktop app's Code tab. Install only the ones you want.
@@ -164,7 +171,7 @@ Other ways to load them:
 
 ```bash
 # one session only
-claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow
+claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow --plugin-dir ./qcompact
 ```
 
 ```json

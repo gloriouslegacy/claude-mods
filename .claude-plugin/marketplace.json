@@ -4,7 +4,7 @@
     "name": "gloriouslegacy"
   },
   "metadata": {
-    "description": "Three Claude Code mods: qhud, pinboard, agent-flow"
+    "description": "Four Claude Code mods: qhud, pinboard, agent-flow, qcompact"
   },
   "plugins": [
     {
@@ -24,6 +24,12 @@
       "source": "./pinboard",
       "description": "Pinned notes above the prompt: /pin a note (! important, !! interrupt Claude), check it off or remove it with ×; each new pin reaches Claude at once; kept per folder; what you type is listed for the session",
       "version": "0.6.1"
+    },
+    {
+      "name": "qcompact",
+      "source": "./qcompact",
+      "description": "A [Compact] button above the prompt: press it twice within 5 seconds to run the built-in /compact",
+      "version": "0.1.0"
     }
   ]
 }

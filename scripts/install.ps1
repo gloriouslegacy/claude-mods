@@ -1,7 +1,7 @@
 # install.ps1 - installs, updates, rolls back or removes the my-mods Claude Code plugins on Windows (PowerShell 5.1 and 7).
 <#
 .SYNOPSIS
-  Install or update the my-mods plugins (qhud, pinboard, agent-flow) for Claude Code.
+  Install or update the my-mods plugins (qhud, pinboard, agent-flow, qcompact) for Claude Code.
 .DESCRIPTION
   Steps: 1 check Claude Code, 2 get the release, 3 verify SHA256SUMS.txt, 4 unpack, 5 swap current\ (the old one is
   kept as previous\), 6 register the my-mods marketplace, 7 install the plugins, 8 print what to do next.
@@ -38,7 +38,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $Repo = 'gloriouslegacy/claude-mods'
 $Marketplace = 'my-mods'
-$KnownPlugins = @('qhud', 'pinboard', 'agent-flow')
+$KnownPlugins = @('qhud', 'pinboard', 'agent-flow', 'qcompact')
 # read by install-lib.ps1; script: scope keeps the analyzer from calling them unused
 $script:OldName = 'tcw'
 $script:RetiredPlugins = @('blast-radius', 'replay-theater', 'change-tutor')

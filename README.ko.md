@@ -1,6 +1,6 @@
 # my-mods (한국어 안내)
 
-Claude Code 모드(함수 훅 플러그인) 3개입니다. **Claude Code 2.1.287 이상**이 필요합니다. 화면에 표시되는 문구는 모두 영어입니다.
+Claude Code 모드(함수 훅 플러그인) 4개입니다. **Claude Code 2.1.287 이상**이 필요합니다. 화면에 표시되는 문구는 모두 영어입니다.
 
 ---
 
@@ -107,6 +107,12 @@ last: implementer · Edit src/parser.ts
 
 패널은 이번 세션의 에이전트만 보여 주고, `/aflow stats` 기록은 세션을 넘어 유지됩니다. 엔진이 가진 정보만 읽어서 토큰을 쓰지 않습니다. `/aflow text`는 같은 트리를 텍스트로 출력하고, 패널을 그릴 수 없는 환경(`-p` 실행, 에디터 확장)에서는 `/aflow`가 자동으로 텍스트로 출력합니다.
 
+### qcompact — 프롬프트 위 Compact 버튼
+
+프롬프트 위에 `[Compact]` 버튼이 항상 보입니다. 한 번 누르면 `[Compact?]`로 바뀌고, 5초 안에 다시 누르면 Claude Code 내장 `/compact`를 실행합니다(모델을 따로 부르지 않습니다). 5초가 지나면 `[Compact]`로 돌아갑니다. 압축 중에는 `[Compacting…]`으로 표시되고 그동안의 클릭은 무시됩니다. 설정도 명령도 없습니다.
+
+아이디어는 effortless(HeyCubit)에서 얻었으며 코드는 복사하지 않았습니다. (Idea from effortless (HeyCubit).)
+
 ---
 
 ## 2. 설치
@@ -128,7 +134,7 @@ Expand-Archive my-mods-*.zip -DestinationPath .
 powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 ```
 
-압축을 푼 릴리스 안에서 실행하면 그 번들을 그대로 설치합니다(다운로드·체크섬 단계 없음). 스크립트만 따로 실행하면(`gh` 로그인 또는 `GITHUB_TOKEN` 필요) 최신 릴리스를 받아 `SHA256SUMS.txt`와 대조한 뒤 설치합니다. 플러그인 3개를 user 범위로 설치하고, 파일은 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`(Windows는 `%USERPROFILE%\.claude\claude-mods`)에 두며, 그 폴더로 `my-mods` marketplace를 등록합니다. WSL은 Windows와 `~/.claude`가 따로이므로 쓰는 환경마다 각각 설치해야 합니다.
+압축을 푼 릴리스 안에서 실행하면 그 번들을 그대로 설치합니다(다운로드·체크섬 단계 없음). 스크립트만 따로 실행하면(`gh` 로그인 또는 `GITHUB_TOKEN` 필요) 최신 릴리스를 받아 `SHA256SUMS.txt`와 대조한 뒤 설치합니다. 플러그인 4개를 user 범위로 설치하고, 파일은 `${CLAUDE_CONFIG_DIR:-~/.claude}/claude-mods`(Windows는 `%USERPROFILE%\.claude\claude-mods`)에 두며, 그 폴더로 `my-mods` marketplace를 등록합니다. WSL은 Windows와 `~/.claude`가 따로이므로 쓰는 환경마다 각각 설치해야 합니다.
 
 릴리스의 `my-mods/` 루트에는 설치기 파일이 네 개 있습니다: `install.sh` + `install-lib.sh`, `install.ps1` + `install-lib.ps1`. 짝을 같은 폴더에 함께 두세요. 진입 파일이 lib를 같은 폴더, 번들, 설치 폴더의 `current` / `previous` 순으로 찾습니다.
 
@@ -136,7 +142,7 @@ powershell -ExecutionPolicy Bypass -File .\my-mods\install.ps1
 
 | 옵션 (bash / PowerShell) | 동작 |
 |---|---|
-| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 3개 전부) |
+| `--plugins qhud,pinboard` / `-Plugins qhud,pinboard` | 일부만 설치(기본: 4개 전부) |
 | `--version v1.0.0` / `-Version v1.0.0` | 특정 버전 설치(기본: 최신) |
 | `--zip <파일>` `--sums <파일>` / `-Zip <파일>` `-Sums <파일>` | 이미 받은 zip으로 설치. `SHA256SUMS.txt`가 zip 옆에 있어야 하며, 다른 위치면 `--sums` 지정 |
 | `--dir <경로>` / `-Dir <경로>` | 설치 폴더 변경(홈 폴더·드라이브 루트·Claude 설정 폴더 자체는 거부) |
@@ -153,6 +159,7 @@ claude plugin marketplace add ./
 claude plugin install qhud@my-mods --scope user
 claude plugin install pinboard@my-mods --scope user
 claude plugin install agent-flow@my-mods --scope user
+claude plugin install qcompact@my-mods --scope user
 ```
 
 - `--scope user`로 설치하면 모든 프로젝트, 터미널, 데스크톱 앱 Code 탭에서 로드됩니다. 필요한 것만 설치해도 됩니다.
@@ -163,7 +170,7 @@ claude plugin install agent-flow@my-mods --scope user
 
 ```bash
 # 이번 한 세션만
-claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow
+claude --plugin-dir ./qhud --plugin-dir ./pinboard --plugin-dir ./agent-flow --plugin-dir ./qcompact
 ```
 
 ```json
