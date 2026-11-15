@@ -1,6 +1,7 @@
 // agent-flow: the pane's render, pure — it takes the components $.ui.resolve(e) gave (ui), the state and
 // the callbacks, and returns the tree; it never touches the host itself. bandView draws the band above the
-// prompt: the same headline with [Show]/[Hide] and, unfolded, the rows below with buttons that open the pane.
+// prompt: the same headline without "AFlow · " (main + 2 agents · … [Show]/[Hide]) and, unfolded, the
+// rows below with buttons that open the pane.
 //   AFlow · main + 2 agents · 2 running · 0 waiting   (magenta bold)
 //   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
 //   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
@@ -168,7 +169,7 @@ export const flowView = (ui: Ui, s: FlowState, act: Actions) => {
 /** What the band above the prompt draws. */
 export type BandState = { m: MainRow; rows: readonly AgentRow[]; now: number; limits: Limits }
 
-/** The band above the prompt: the pane's headline with [Show]/[Hide]; unfolded, main and the subagent tree
+/** The band above the prompt: the pane's headline without "AFlow · ", with [Show]/[Hide]; unfolded, main and the subagent tree
  *  one line each, as the pane's folded rows with their buttons; the actions show details and diffs in the
  *  pane, never here. Unlisted loops stay in the pane. */
 export const bandView = (ui: Ui, s: BandState, columns: number, isFolded: boolean, onFold: () => unknown, act: Actions) => {
@@ -180,7 +181,7 @@ export const bandView = (ui: Ui, s: BandState, columns: number, isFolded: boolea
     <Box flexDirection="column" width={columns}>
       <Box flexDirection="row" gap={1}>
         <Box flexShrink={1}>
-          <Text color="magenta" bold wrap="truncate">{headline(listed, m.isRunning)}</Text>
+          <Text color="magenta" bold wrap="truncate">{headline(listed, m.isRunning, false)}</Text>
         </Box>
         <Button key="aflow-fold" plain label={isFolded ? '[Show]' : '[Hide]'} onPress={onFold} />
       </Box>

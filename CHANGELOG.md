@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.10.0 (2026-11-15)
+
+- Changed: the lines above the prompt drop their plugin names, like the `[Compact]` button. pinboard 0.8.0 shows `N pins · » M` (`1 pin` for one) instead of `Pins N · » M`, and the agent-flow 0.12.0 strip shows `main + N agents · R running · W waiting`. The `/aflow` pane and `/aflow text` keep the `AFlow ·` headline.
+- No setting keys changed.
+- Plugins: qhud 0.18.1, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.9.0 (2026-11-15)
 
 - Changed: the status lines above the prompt drop their icons, keeping only text and color. pinboard 0.7.0 shows `Pins N · » M`, agent-flow 0.11.0 shows `AFlow · main + N agents · R running · W waiting`, and qcompact 0.3.0 shows `[Compact]`, `[Compact?]` and `[Compacting…]`. The 🗜 icon overlapped the button text in some terminals. Pins sent to Claude still start with 📌.

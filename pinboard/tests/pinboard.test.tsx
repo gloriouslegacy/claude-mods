@@ -13,7 +13,7 @@ test('parsing /pin', () => {
   expect(parse('!')).toEqual({ kind: 'help' })
   const pin = { id: 'a', text: 'x', important: true, done: false, at: 0 }
   expect(delivery(pin, 3)).toContain('#3 (marked important): x')
-  expect(header([pin, { ...pin, id: 'b', done: true }])).toBe('Pins 1 (done 1)')
+  expect(header([pin, { ...pin, id: 'b', done: true }])).toBe('1 pin (done 1)')
   expect(listing([pin])).toBe('1. [ ] ★ x')
 })
 
@@ -50,13 +50,13 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
     const props = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
     const band = await $.ui.mount({ plugin: 'pinboard', surface, component: 'AbovePrompt', props })
-    expect(await band.find({ text: 'Pins 2' })).toBeDefined()
+    expect(await band.find({ text: '2 pins' })).toBeDefined()
     expect(await band.find({ text: '1. ★ check the .env keys before deploying' })).toBeDefined()
     expect(await band.find({ text: 'other row' })).toBeDefined()
 
     const r = await $.command.run({ command: 'pin', args: 'done 2' })
     expect(r.text).toBe('Marked #2 done.')
-    expect(await band.find({ text: 'Pins 1 (done 1)' })).toBeDefined()
+    expect(await band.find({ text: '1 pin (done 1)' })).toBeDefined()
     expect(JSON.stringify(await band.drawn()).includes('"strikethrough":true')).toBe(true)
 
     const tree = JSON.stringify(await band.drawn())
@@ -129,7 +129,7 @@ test('mid-turn: a pin is appended and read at the next step; one no step read is
 
   // neither the appended note nor the follow-up prompt is listed as something typed
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: 'Pins 2' })).toBeDefined()
+  expect(await band.find({ text: '2 pins' })).toBeDefined()
   expect(await band.find({ text: /»/ })).toBeUndefined()
 })
 
@@ -186,7 +186,7 @@ test('capture helpers: who counts, the cap of 20, removal, the first line', () =
   const long = firstLine(`${'y'.repeat(CAPTURE_CHARS + 50)}\nmore`)
   expect(long.length).toBe(CAPTURE_CHARS)
   expect(long.endsWith('y …')).toBe(true)
-  expect(header([], 2)).toBe('Pins 0 · » 2')
+  expect(header([], 2)).toBe('0 pins · » 2')
   expect(withRequestId(list, 'c4', 'r4').find(c => c.id === 'c4')?.requestId).toBe('r4')
   expect(markerId('12.5-ab')).toBe('cap-12_5-ab')
   expect(markerId('x'.repeat(80)).length).toBe(64)
@@ -251,12 +251,12 @@ test('a prompt typed mid-turn is listed dimmed with », passes unchanged, folds 
   expect(r.text).toBe('use the staging bucket\nand keep the logs')
   expect(entered.at(-1)).toBe('use the staging bucket\nand keep the logs')
   expect(session.appended().length).toBe(0)
-  expect(await band.find({ text: 'Pins 0 · » 1' })).toBeDefined()
+  expect(await band.find({ text: '0 pins · » 1' })).toBeDefined()
   expect(await band.find({ text: '1. use the staging bucket …' })).toBeDefined()
   expect(JSON.stringify(await band.drawn()).includes('"dimColor":true')).toBe(true)
   // a prompt queued with wait: true is listed too
   await $.prompt.submit({ origin: { kind: 'composer' }, wait: true, text: 'then rerun the tests', turnId: 't' })
-  expect(await band.find({ text: 'Pins 0 · » 2' })).toBeDefined()
+  expect(await band.find({ text: '0 pins · » 2' })).toBeDefined()
   expect(await band.find({ text: '2. then rerun the tests' })).toBeDefined()
   // pin numbering stays its own; rm N touches pins only
   await $.command.run({ command: 'pin', args: 'a real pin' })
@@ -387,7 +387,7 @@ test('a prompt typed while Claude is idle is listed the same way; commands, hidd
   expect(entered.at(-1)).toBe('start the build')
   expect(placed.length).toBe(1)
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: 'Pins 0 · » 1' })).toBeDefined()
+  expect(await band.find({ text: '0 pins · » 1' })).toBeDefined()
   expect(await band.find({ text: '1. start the build' })).toBeDefined()
   expect(await band.find({ text: /hidden|from a plugin|\/pin x/ })).toBeUndefined()
 })
@@ -461,7 +461,7 @@ test('the board starts folded by default and a new pin does not unfold it; [Show
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   await $.command.run({ command: 'pin', args: 'a note' })
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: 'Pins 1' })).toBeDefined()
+  expect(await band.find({ text: '1 pin' })).toBeDefined()
   expect(await band.find({ text: '[Show]' })).toBeDefined()
   expect(await band.find({ text: '1. a note' })).toBeUndefined()
 
@@ -470,7 +470,7 @@ test('the board starts folded by default and a new pin does not unfold it; [Show
   expect(await band.find({ text: '1. a note' })).toBeDefined()
   await $.command.run({ command: 'pin', args: '' })
   await $.command.run({ command: 'pin', args: 'another note' })
-  expect(await band.find({ text: 'Pins 2' })).toBeDefined()
+  expect(await band.find({ text: '2 pins' })).toBeDefined()
   expect(await band.find({ text: '2. another note' })).toBeUndefined()
   await $.command.run({ command: 'pin', args: '' })
   expect(await band.find({ text: '2. another note' })).toBeDefined()

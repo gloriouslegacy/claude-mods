@@ -13,6 +13,7 @@ test('helpers', () => {
   expect(elapsed(125_000)).toBe('2m05s')
   expect(tree([row('a'), row('b'), row('c', 'a')]).map(t => `${t.depth}${t.row.id}${t.isLast ? '.' : ''}`)).toEqual(['0a', '1c.', '0b.'])
   expect(headline([row('a'), { ...row('b'), status: 'completed' }])).toBe('AFlow · main + 2 agents · 1 running · 0 waiting')
+  expect(headline([row('a')], true, false)).toBe('main + 1 agent · 2 running · 0 waiting') // v2.10.0 F2: the band's form
   expect(toolLabel('Edit', { file_path: '/a/b/c/src/parser.ts' })).toBe('Edit .../c/src/parser.ts')
   expect(toolLabel('Bash', { command: 'npm   test' })).toBe('Bash npm test')
   expect(toolLabel('mcp__kiwoom__get_quote', { query: 'x' })).toBe('get_quote x')
@@ -177,6 +178,7 @@ test('what each loop does now, slow and silent warnings, [+] details, unlisted l
   expect(text).toContain('└ [run] implementer "Fix the parser"  Fable 5.1')
   expect(text).toContain('×2  ✎0')
   expect(text).toContain('· 1 unlisted')
+  expect(text.startsWith('AFlow · main + ')).toBe(true) // v2.10.0 F2: /aflow text keeps the title
 })
 
 test('stats: the run log grouped by agent and model, costliest first', () => {
@@ -400,20 +402,21 @@ test('the band: nothing before a subagent, then a folded headline; [Show] unfold
   bandHost(on)
   await $.session.start({ cwd: '/p', surface: 'terminal', isInteractive: true })
   const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: /AFlow/ })).toBeUndefined()
+  expect(await band.find({ text: /waiting/ })).toBeUndefined()
   expect(await band.find({ text: 'other row' })).toBeDefined()
 
   await $.turn.start({ text: 'go', turnId: 't' })
   for await (const _ of $.turn.step({ turnId: 't', index: 0, model: 'claude-fable-5-1', messageCount: 1, agentId: 'a1' })) {
     // drain
   }
-  // starts folded: the headline and [Show] only, other rows below it
-  expect(await band.find({ text: 'AFlow · main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
+  // starts folded: the headline (no "AFlow · " title, v2.10.0 F2) and [Show] only, other rows below it
+  expect(await band.find({ text: 'main + 1 agent · 2 running · 0 waiting' })).toBeDefined()
   expect(await band.find({ text: 'implementer "Fix the parser"' })).toBeUndefined()
   let drawn = JSON.stringify(await band.drawn())
-  expect(drawn).toMatch(/"color":"magenta","bold":true[^}]*},"children":\["AFlow · main/)
+  expect(drawn).toMatch(/"color":"magenta","bold":true[^}]*},"children":\["main \+ 1 agent/)
+  expect(drawn).not.toContain('AFlow')
   expect(drawn).toContain('[Show]')
-  expect(drawn.indexOf('AFlow ·')).toBeLessThan(drawn.indexOf('other row'))
+  expect(drawn.indexOf('main + 1 agent')).toBeLessThan(drawn.indexOf('other row'))
 
   await band.press({ key: 'aflow-fold' })
   expect(await band.find({ text: 'main' })).toBeDefined()
@@ -430,7 +433,7 @@ test('the band: nothing before a subagent, then a folded headline; [Show] unfold
 
   // a survey takes the band
   const survey = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, hasSurvey: true } })
-  expect(await survey.find({ text: /AFlow/ })).toBeUndefined()
+  expect(await survey.find({ text: /waiting/ })).toBeUndefined()
 })
 
 test('band off: no band; the pane stays', { options: { band: false } }, async ($, on) => {
@@ -440,7 +443,7 @@ test('band off: no band; the pane stays', { options: { band: false } }, async ($
     // drain
   }
   const band = await $.ui.mount({ plugin: 'agent-flow', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: /AFlow/ })).toBeUndefined()
+  expect(await band.find({ text: /waiting/ })).toBeUndefined()
   expect(await band.find({ text: 'other row' })).toBeDefined()
 })
 

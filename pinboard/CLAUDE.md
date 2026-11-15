@@ -5,11 +5,12 @@
 | 파일 | 역할 |
 |---|---|
 | hooks/register.tsx | 명령 처리·폴더별 저장·대화에 메모 전달·`!!` 중단·입력 기록·펼침·대화 표식과 턴 이동·보드 접힘·/clear 복구 틱·렌더 (호스트 API 는 여기만) |
-| hooks/pins.ts | `/pin` 파싱(`parse`)·목록 변경·머리줄 `header`(`Pins N · » M`, 아이콘 없음 v2.9.0)·Claude 가 읽는 문구(`📌` 유지)·`HELP`·`storeKey`·`KEEP_PINS`(50) · 기록 헬퍼(`isCapture`·`captureOf`·`firstLine`·`fullLines`·`toggleOpen`·`addCaptured`·`removeCaptured`·`KEEP_CAPTURED`(20)·`CAPTURE_LINES`(20)) · 이동 헬퍼(`withRequestId`·`markerId`·`markerLabel`·`jumpTo`·`JUMP_GONE`) |
+| hooks/pins.ts | `/pin` 파싱(`parse`)·목록 변경·머리줄 `header`(`N pins · » M`, 하나면 `1 pin`, 플러그인 이름·아이콘 없음 v2.10.0)·Claude 가 읽는 문구(`📌` 유지)·`HELP`·`storeKey`·`KEEP_PINS`(50) · 기록 헬퍼(`isCapture`·`captureOf`·`firstLine`·`fullLines`·`toggleOpen`·`addCaptured`·`removeCaptured`·`KEEP_CAPTURED`(20)·`CAPTURE_LINES`(20)) · 이동 헬퍼(`withRequestId`·`markerId`·`markerLabel`·`jumpTo`·`JUMP_GONE`) |
 | hooks/restore.ts | /clear 복구 판단 `Board`·`restoreOf(folder, kept)` |
 | types/index.d.ts | `Pin`·`Captured`(`lines?`·`open?`·`requestId?`) + `claude-code` ambient 선언(atom `folded`·`captured` 포함) |
 | tests/pinboard.test.tsx | 순수 모듈 테스트 (테스트 호스트는 `ui.scroll` 에 응답하지 않아 클릭 → 이동은 `jumpTo` 로 검증). 494줄 — 게이트 상한 500, 새 테스트는 별도 파일로 |
 | tests/restore.test.tsx | `restoreOf` + 가짜 호스트(`clearableHost`)로 /clear 뒤 핀·접힘 복구, 저장 키, 복구·저장 경합, 복구 실패 |
+| tests/header.test.tsx | 머리줄 단위·단수(`1 pin`)·`(done N)`·`» M` 꼴 |
 테스트: `claude plugin test ./pinboard` (검증만: `claude plugin validate ./pinboard`)
 규칙:
 - `$.store` 키 `pins:<folder>`(세션 cwd 기준), 폴더별 최근 50개. 업데이트 후에도 유지돼야 하는 사용자 데이터 — 키 형식을 바꾸면 옛 메모가 사라진다. 빈 폴더 키 `pins:` 에는 쓰지 않는다(folder `''` 면 저장 생략).
@@ -21,4 +22,4 @@
 - 표식 줄(`Placed`)은 `» #N` 만 그리고 입력 내용을 그리지 않으며 `capture` 꺼짐이면 그리지 않는다. place 실패는 기록을 막지 않고, 표식 없음·scroll `deny`·reject 는 토스트만(기록 유지).
 - `$.ui.log` 는 대화창에 보인다 — 실패만 남기고, 호스트가 플러그인 이름을 붙이므로 `pinboard:` 접두어를 넣지 않는다.
 - `/pin` 명령 문법을 바꾸면 `HELP` 문구와 README 두 벌을 함께 고친다.
-ADR: docs/design/baseline.md · 명세: docs/spec/v2.1.0.md, docs/spec/v2.2.0.md, docs/spec/v2.3.0.md, docs/spec/v2.5.2.md, docs/spec/v2.9.0.md
+ADR: docs/design/baseline.md · 명세: docs/spec/v2.1.0.md, docs/spec/v2.2.0.md, docs/spec/v2.3.0.md, docs/spec/v2.5.2.md, docs/spec/v2.9.0.md, docs/spec/v2.10.0.md
