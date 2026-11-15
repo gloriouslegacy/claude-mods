@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.9.0 (2026-11-15)
+
+- Changed: the status lines above the prompt drop their icons, keeping only text and color. pinboard 0.7.0 shows `Pins N · » M`, agent-flow 0.11.0 shows `AFlow · main + N agents · R running · W waiting`, and qcompact 0.3.0 shows `[Compact]`, `[Compact?]` and `[Compacting…]`. The 🗜 icon overlapped the button text in some terminals. Pins sent to Claude still start with 📌.
+- No setting keys changed.
+- Plugins: qhud 0.18.1, pinboard 0.7.0, agent-flow 0.11.0, qcompact 0.3.0.
+
 ## v2.8.0 (2026-11-13)
 
 - Changed: qcompact 0.2.0 puts a 🗜 icon before the button label and colors it by state: `🗜 [Compact]` is cyan bold, `🗜 [Compact?]` is yellow bold, `🗜 [Compacting…]` is dim. Click behavior is unchanged.

@@ -1,5 +1,5 @@
 // pinboard: notes pinned above the prompt, kept per folder across sessions.
-//   📌 Pins 2 (done 1)  [Hide]
+//   Pins 2 (done 1)  [Hide]
 //   [✓] 1. ★ check the .env keys before deploying        [×]
 //   [↺] 2. upload to the drive when the render is done   [×]   (struck through: done)
 // /pin <note> pins one ("!" first marks it important); /pin done|undo|rm N, /pin clear, /pin list,

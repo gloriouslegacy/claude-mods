@@ -31,10 +31,10 @@ test('a press after expiry arms again instead of running', () => {
   expect(press(expire(press('idle').phase))).toEqual({ phase: 'confirm', action: 'arm' })
 })
 
-test('the button label follows the phase, after the clamp icon', () => {
-  expect(label('idle')).toBe('\u{1F5DC} [Compact]')
-  expect(label('confirm')).toBe('\u{1F5DC} [Compact?]')
-  expect(label('running')).toBe('\u{1F5DC} [Compacting…]')
+test('the button label follows the phase, with no icon', () => {
+  expect(label('idle')).toBe('[Compact]')
+  expect(label('confirm')).toBe('[Compact?]')
+  expect(label('running')).toBe('[Compacting…]')
 })
 
 test('the button style follows the phase: cyan bold, yellow bold, then dim', () => {

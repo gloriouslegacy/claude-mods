@@ -79,11 +79,11 @@ test('after a /clear resets the atoms the board comes back with its pins and fol
   await $.session.end({ reason: 'clear', sessionId: 's1', resume: { id: 's1' } } as never)
   host.reset()
   const cleared = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await cleared.find({ text: '📌 Pins 1' })).toBeUndefined()
+  expect(await cleared.find({ text: 'Pins 1' })).toBeUndefined()
   await host.clock.advance(500) // resolves once the tick's restore has settled
   expect(['folder', 'folded', 'pins'].filter(host.isReset)).toEqual([])
   const restored = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await restored.find({ text: '📌 Pins 1' })).toBeDefined()
+  expect(await restored.find({ text: 'Pins 1' })).toBeDefined()
   expect(await restored.find({ text: '[Show]' })).toBeDefined()
   await restored.press({ key: 'fold' })
   expect(await restored.find({ text: '1. a note' })).toBeDefined()
@@ -124,7 +124,7 @@ test('a /pin while the restore tick waits on the store keeps the new pin (the ti
 
   expect((host.store.get('pins:/p') as { text: string }[]).map(p => p.text)).toEqual(['a note', 'during restore'])
   const band = await $.ui.mount({ plugin: 'pinboard', surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await band.find({ text: '📌 Pins 2' })).toBeDefined()
+  expect(await band.find({ text: 'Pins 2' })).toBeDefined()
 })
 
 test('a /pin whose restore fails still changes the board but writes nothing under the empty folder key', { options: { deliver: false } }, async ($, on) => {

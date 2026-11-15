@@ -42,10 +42,10 @@ export const counts = (pins: readonly Pin[]): { open: number; done: number } => 
   return { open: pins.length - done, done }
 }
 
-/** "📌 Pins 2 (done 1)", with " · » 3" when prompts you typed are listed too. */
+/** "Pins 2 (done 1)", with " · » 3" when prompts you typed are listed too. */
 export const header = (pins: readonly Pin[], captured = 0): string => {
   const c = counts(pins)
-  return `📌 Pins ${c.open}${c.done > 0 ? ` (done ${c.done})` : ''}${captured > 0 ? ` · » ${captured}` : ''}`
+  return `Pins ${c.open}${c.done > 0 ? ` (done ${c.done})` : ''}${captured > 0 ? ` · » ${captured}` : ''}`
 }
 
 /** The fields of a prompt.submit input that decide a capture (structural, so this module stays host-free). */

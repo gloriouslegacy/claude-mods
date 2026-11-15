@@ -6,7 +6,7 @@
 |---|---|
 | hooks/register.tsx | spawn·turn·tool 이벤트로 에이전트 행 갱신, 실행 기록 저장, 명령, Pane·AbovePrompt 연결, 첫 session.start 자동 열기·띠 접힘, 띠 버튼 → `showInPane(isSame)`(열기/전환/같은 화면이면 닫기), `isPaneUp($, ifUnknown)` (호스트 API 는 여기만) |
 | hooks/view.tsx | 렌더 모듈(baseline 3항 예외): `ui`(=`$.ui.resolve(e)`)·상태·콜백을 인자로 `flowView`·`diffView`·`mainRow`·`agentRow`(`RowButtons` key `prefix`: pane `''`, 띠 `'aflow-'`)·`doingTail`·`bandView`. 헤드라인은 pane·띠 모두 magenta bold |
-| hooks/flow.ts | 토큰 수·라벨·경과 시간·트리 순서·지금 하는 일, `headline`(`🤖 AFlow · …`, 띠·pane·`/aflow text` 공통 문구), `newRow`, `shouldTick`, `shouldAutoOpen`, `foldToRestore`, `KEEP_CHANGES`·`KEEP_LINES`, `shortPath` |
+| hooks/flow.ts | 토큰 수·라벨·경과 시간·트리 순서·지금 하는 일, `headline`(`AFlow · …`, 아이콘 없음 v2.9.0, 띠·pane·`/aflow text` 공통 문구), `newRow`, `shouldTick`, `shouldAutoOpen`, `foldToRestore`, `KEEP_CHANGES`·`KEEP_LINES`, `shortPath` |
 | hooks/stats.ts | 실행 기록(`LOG_KEY`·`KEEP_LOG` 3000, `logEntry`·`asLog`·`appendLog`)과 `/aflow stats` 집계 |
 | hooks/model.ts | 모델 id → 짧은 이름 (qhud 와 복사본) |
 | hooks/diff.ts | 도구 patch 정규화·변경 수·표시용 자르기 |
@@ -24,4 +24,5 @@
 - 2초 틱은 pane 이 앞에 보이거나(`$.ui.panes()`) 띠가 펼쳐져 있을 때만 다시 그린다(접힘 복구는 그 판단 앞). 호스트는 session.start 사이에 타이머를 정리하지 않으므로 `ticker?.cancel()` 뒤 다시 걸어 늘 1개(v0.7.1). 실행 기록·종료 판정은 `turn.complete` 에서 하고 틱에 기대지 않는다.
 - 명령 이름은 `agent…` 로 시작하지 않는다(Claude Code 2.1.302 가 `/agent-flow` 를 명령 목록에서 깨뜨려 그림, v1.3.0 에서 제거).
 - Agent·Monitor 처럼 기다리는 것이 본래 동작인 도구는 slow 표시하지 않는다.
-ADR: docs/design/baseline.md · 명세: docs/spec/v1.4.0.md, docs/spec/v2.0.0.md, docs/spec/v2.4.0.md, docs/spec/v2.5.0.md, docs/spec/v2.5.1.md, docs/spec/v2.5.2.md, docs/spec/v2.8.0.md
+- 띠 헤드라인에 이모지를 넣지 않는다(터미널마다 폭이 달라 겹침, v2.9.0).
+ADR: docs/design/baseline.md · 명세: docs/spec/v1.4.0.md, docs/spec/v2.0.0.md, docs/spec/v2.4.0.md, docs/spec/v2.5.0.md, docs/spec/v2.5.1.md, docs/spec/v2.5.2.md, docs/spec/v2.8.0.md, docs/spec/v2.9.0.md

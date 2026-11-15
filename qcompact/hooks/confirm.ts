@@ -18,14 +18,11 @@ export function expire(phase: Phase): Phase {
   return phase === 'confirm' ? 'idle' : phase
 }
 
-/** Drawn before every label: a clamp (U+1F5DC) and a space. */
-const ICON = '\u{1F5DC} '
-
 /** The button's label for a phase. */
 export function label(phase: Phase): string {
-  if (phase === 'confirm') return `${ICON}[Compact?]`
-  if (phase === 'running') return `${ICON}[Compacting…]`
-  return `${ICON}[Compact]`
+  if (phase === 'confirm') return '[Compact?]'
+  if (phase === 'running') return '[Compacting…]'
+  return '[Compact]'
 }
 
 /** The label's text style for a phase: cyan bold waiting, yellow bold confirming, dim while compacting. */

@@ -5,7 +5,7 @@
 | 파일 | 역할 |
 |---|---|
 | hooks/register.tsx | 버튼 렌더(`<Button label>` 안에 `<Text {...look(phase)}>` 자식 — Button 은 color·bold 를 안 받음)·클릭 처리·5초 만료 타이머·`$.command.run({ command: 'compact' })`·`logFailure`(로그가 던져도 삼킴). 토스트·`expiry?.cancel()` 은 각각 try 로 감싸 phase 가 멈추지 않게 (호스트 API 는 여기만) |
-| hooks/confirm.ts | 상태 전이 `press`·`expire`(idle → confirm → running, 만료 → idle, running 중 클릭 무시)·`label`(`🗜 [Compact]`·`🗜 [Compact?]`·`🗜 [Compacting…]`)·`look`(cyan bold·yellow bold·dim)·`CONFIRM_MS`(5000)·`failure`·`cleanReason`(C0·C1·줄 구분자·`\p{Cf}`·U+FE00–FE0F → 공백, 앞 공백은 `search` 로 건너뛰고 401 유닛만 잘라 200 코드포인트, 비문자열·빈 값 `unknown error`) |
+| hooks/confirm.ts | 상태 전이 `press`·`expire`(idle → confirm → running, 만료 → idle, running 중 클릭 무시)·`label`(`[Compact]`·`[Compact?]`·`[Compacting…]`, 아이콘 없음 v2.9.0)·`look`(cyan bold·yellow bold·dim)·`CONFIRM_MS`(5000)·`failure`·`cleanReason`(C0·C1·줄 구분자·`\p{Cf}`·U+FE00–FE0F → 공백, 앞 공백은 `search` 로 건너뛰고 401 유닛만 잘라 200 코드포인트, 비문자열·빈 값 `unknown error`) |
 | types/index.d.ts | `Phase`·`Action` 타입 + `claude-code` ambient 선언(atom `phase` 의 `PluginState` 만) |
 | tests/qcompact.test.tsx | `confirm.ts` 순수 함수 테스트 20개(`\p{…}` 지원 확인 포함) |
 테스트: `claude plugin test ./qcompact` (검증만: `claude plugin validate ./qcompact`)
@@ -15,7 +15,8 @@
 - 확인 만료 5초. 만료·실패·완료 모두 idle 로 돌아간다. 실패는 토스트 + `$.ui.log` 한 줄, 문구는 항상 `cleanReason` 을 거친다.
 - `cleanReason` 결과는 옛 방식(전체 치환·trim 뒤 자르기)과 같아야 한다 — 바꾸면 fuzz 로 비교(v2.8.0 F1, 20만 건 불일치 0).
 - 정규식의 유니코드 이스케이프는 `\u{XXXX}` + `u` 플래그로 쓴다(Edit 도구가 `\uXXXX` 를 실제 문자로 바꿔 U+2028 이 정규식을 깨뜨린 적 있음).
+- 라벨에 이모지를 넣지 않는다 — `🗜`(기본 텍스트 표시 문자)가 글자와 겹쳐 깨졌다(2026-11-15 실측, v2.9.0 F1). `<Text>` 자식 색은 버튼에 그려진다(같은 실측).
 - 상태는 세션 atom 전용 — `$.store` 에 쓰지 않는다.
-- 실측 전: `$.command.run` resolve 시점·핫 리로드 뒤 `confirm` 잔류·`<Text>` 자식 색이 버튼에 그려지는지·`🗜` 폭 [모름].
+- 실측 전: `$.command.run` resolve 시점·핫 리로드 뒤 `confirm` 잔류 [모름].
 - 아이디어 출처: effortless(HeyCubit, MIT). 코드를 복사하면 MIT 고지를 넣어야 하므로 복사하지 않는다.
-ADR: docs/design/baseline.md · 명세: docs/spec/v2.7.0.md, docs/spec/v2.8.0.md
+ADR: docs/design/baseline.md · 명세: docs/spec/v2.7.0.md, docs/spec/v2.8.0.md, docs/spec/v2.9.0.md
