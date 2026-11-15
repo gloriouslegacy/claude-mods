@@ -203,6 +203,8 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 | `qhud.weather` | `true`, `false` — show `CT 67%` (context fill) | `true` |
 | `qhud.plan` | `true`, `false` — show the model-specific weekly window (read every 5 minutes, no tokens) | `true` |
 | `qhud.git` | `true`, `false` — show the git part (runs `git status` on each refresh, no tokens) | `true` |
+| `qhud.alert` | `true`, `false` — usage limit alert: when a window (5h, 7d, model weekly, spend) is nearly used up, show a toast and add a one-line note for the main Claude (not subagents) to its next tool result or prompt; once per window and reset cycle | `true` |
+| `qhud.alertLeft` | percent left that triggers the alert, 1 to 50 (outside that range: 5); it can be up to 15 seconds late | `5` |
 | `qhud.ttl` | `1h`, `5m` — the prompt-cache TTL the expiry toast counts from | `1h` |
 
 `/qhud-usage` reads the account usage endpoint right away and prints what it answered: use it when the model-specific window looks wrong or missing.

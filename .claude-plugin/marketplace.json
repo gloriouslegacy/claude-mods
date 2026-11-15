@@ -11,7 +11,7 @@
       "name": "qhud",
       "source": "./qhud",
       "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
-      "version": "0.18.1"
+      "version": "0.19.0"
     },
     {
       "name": "agent-flow",

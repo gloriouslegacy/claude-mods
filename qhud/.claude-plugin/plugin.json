@@ -1,6 +1,6 @@
 {
   "name": "qhud",
-  "version": "0.18.1",
+  "version": "0.19.0",
   "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
   "author": {
     "name": "gloriouslegacy"
@@ -62,6 +62,18 @@
       "title": "Show per-model weekly limits",
       "description": "Also show model-specific weekly windows such as 7d Fable, read from the account usage endpoint every 5 minutes (no tokens)",
       "default": true
+    },
+    "alert": {
+      "type": "boolean",
+      "title": "Usage limit alert",
+      "description": "When a usage window is nearly used up, toast once and tell the main Claude (on its next tool call or your next prompt) to wrap up",
+      "default": true
+    },
+    "alertLeft": {
+      "type": "number",
+      "title": "Alert threshold (% left)",
+      "description": "Alert when this share of a usage window or less is left (1–50; other values mean 5)",
+      "default": 5
     }
   }
 }

@@ -19,6 +19,14 @@ export type RunInfo = {
   answeredBy: string | null
 }
 
+/** The usage-limit alert's session memory (hooks/alert.ts). */
+export type AlertState = {
+  /** Window kind → the resetsAt it was alerted for ('' when the window gives none). */
+  sent: Record<string, string>
+  /** Windows waiting for the main thread's next tool call or prompt. */
+  pending: { kind: string; percentUsed: number; resetsAt?: string }[]
+}
+
 /** One usage-limit window: "5h left 98% (reset 2h16m)". */
 export type LimitView = { name: string; left: number; reset?: string }
 
@@ -47,6 +55,7 @@ declare module 'claude-code' {
       clock: CacheClock
       run: RunInfo
       view: TcwView | null
+      alert: AlertState
     }
   }
 }

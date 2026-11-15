@@ -2,6 +2,13 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.11.0 (2026-11-16)
+
+- Added: qhud 0.19.0 warns when a usage window is nearly used up. When what is left in the 5-hour, weekly, model-specific weekly (with `qhud.plan` on) or spend window drops to `qhud.alertLeft` percent or less (default 5), it acts once per window and reset cycle: a toast for you, and a one-line note for the main Claude only (not subagents), appended to the next tool result or to the next prompt if that comes first. The note is not shown on your screen, e.g. `[qhud] Usage limit nearly reached: 7d Fable 96% used, 4% left (resets in 1h2m). Finish the current step, save progress notes, and avoid starting large new work.` Window names are `5h`, `7d`, `7d <Model>` and `spend`. The usage endpoint is still read at most every 5 minutes, so the alert can be up to 15 seconds late.
+- Added: settings `qhud.alert` (`true`/`false`, default `true`) and `qhud.alertLeft` (percent left that triggers the alert, 1 to 50, default 5; anything outside that range is read as 5).
+- No existing setting keys changed or removed.
+- Plugins: qhud 0.19.0, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.10.0 (2026-11-15)
 
 - Changed: the lines above the prompt drop their plugin names, like the `[Compact]` button. pinboard 0.8.0 shows `N pins · » M` (`1 pin` for one) instead of `Pins N · » M`, and the agent-flow 0.12.0 strip shows `main + N agents · R running · W waiting`. The `/aflow` pane and `/aflow text` keep the `AFlow ·` headline.

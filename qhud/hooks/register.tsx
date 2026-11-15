@@ -12,7 +12,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { CacheClock, Reading, RunInfo, TcwView } from '../types'
+import type { AlertState, CacheClock, Reading, RunInfo, TcwView } from '../types'
+import { alertLeft, alertText, crossed, remember, toastText } from './alert'
 import { cachePart, remainingMs, warnMs } from './cache'
 import type { Ttl } from './cache'
 import { gitPart, parseGit } from './git'
@@ -26,12 +27,13 @@ const history = atom({ plugin: 'qhud', key: 'history' } as const, [] as Reading[
 const clock = atom({ plugin: 'qhud', key: 'clock' } as const, { lastAt: null, ttl: null, warnedFor: null } as CacheClock)
 const run = atom({ plugin: 'qhud', key: 'run' } as const, { effort: null, answeredBy: null } as RunInfo)
 const view = atom({ plugin: 'qhud', key: 'view' } as const, null as TcwView | null)
+const alerts = atom({ plugin: 'qhud', key: 'alert' } as const, { sent: {}, pending: [] } as AlertState)
 
 const TICK_MS = 15_000
 
 type Elements = ReturnType<EngineInterface['ui']['resolve']>
 
-type Options = { ttl: Ttl; layout: 'band' | 'bottom' | 'line'; style: 'chip' | 'box' | 'plain'; model: boolean; weather: boolean; git: boolean; plan: boolean }
+type Options = { ttl: Ttl; layout: 'band' | 'bottom' | 'line'; style: 'chip' | 'box' | 'plain'; model: boolean; weather: boolean; git: boolean; plan: boolean; alert: boolean; alertLeft: number }
 
 // The last per-model windows read; a reload reads them again.
 let plan: { at: number; limits: Limit[]; note: string } = { at: -Infinity, limits: [], note: 'not read yet' }
@@ -97,6 +99,7 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
     const main = model ? modelName(model) : undefined
     const answered = info.answeredBy ? modelName(info.answeredBy) : undefined
     const effort = info.effort ?? settingsEffort(settings, model)
+    const limits = [...(o.plan ? await planWindows($, now) : []), ...usage.rateLimits]
     const v = build({
       model: main,
       effort: o.model ? effort : undefined,
@@ -109,7 +112,7 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
       turns: turns.map(r => r.tokens).slice(-BARS - 1),
       git,
       cache: cachePart(state.lastAt, ttl, now),
-      limits: limitViews([...(o.plan ? await planWindows($, now) : []), ...usage.rateLimits], now),
+      limits: limitViews(limits, now),
       usd: usage.cost?.usd,
     })
     if (typeof settings.theme === 'string' && settings.theme.includes('light')) v.isLight = true
@@ -121,9 +124,22 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
       await update($, clock, c => ({ ...c, warnedFor: at }))
       $.ui.toast(`🧊 Prompt cache expires in ${Math.ceil(left / 60_000)} min. Keep working to keep it warm.`)
     }
+    const hit = o.alert ? crossed(limits, await read($, alerts), o.alertLeft) : []
+    if (hit.length > 0) {
+      await update($, alerts, a => remember(a, hit))
+      $.ui.toast(toastText(hit, now))
+    }
   } catch {
     // usage unavailable for a moment: keep the last view
   }
+}
+
+/** The queued usage-limit alert as one line for the model, emptying the queue; undefined when none waits. */
+async function takeAlert($: EngineInterface): Promise<string | undefined> {
+  const { pending } = await read($, alerts)
+  if (pending.length === 0) return undefined
+  await update($, alerts, a => ({ ...a, pending: [] }))
+  return alertText(pending, await $.clock.now())
 }
 
 async function record($: EngineInterface, fallbackTokens: number | null): Promise<void> {
@@ -143,6 +159,8 @@ export const register: Register = (on, options) => {
     weather: options.weather !== false,
     git: options.git !== false,
     plan: options.plan !== false,
+    alert: options.alert !== false,
+    alertLeft: alertLeft(options.alertLeft),
   }
   // The one 15 s tick: the host keeps timers across session.start, so each one re-arms it.
   let ticker: ReturnType<EngineInterface['clock']['every']> | undefined
@@ -208,6 +226,19 @@ export const register: Register = (on, options) => {
     await refresh($, o)
     return result
   })
+
+  // A queued usage-limit alert reaches the main thread's model after its next tool result, or beside the user's next prompt.
+  on('tool.call', async ($, e, next) => {
+    const ran = await next(e)
+    if (!o.alert || e.agentId !== undefined || ran.deny !== undefined) return ran
+    const note = await takeAlert($)
+    return note ? { ...ran, context: [...(ran.context ?? []), note] } : ran
+  }).catch(($, e, next) => next(e)) // a failed alert never breaks the tool call (replay-safe: the tool does not run again)
+
+  on('prompt.submit', async ($, e, next) => {
+    const note = o.alert ? await takeAlert($) : undefined
+    return next(note ? { ...e, context: [...(e.context ?? []), note] } : e)
+  }).catch(($, e, next) => next(e)) // a failed alert lets the prompt through as it was
 
   on('command.run', { command: 'qhud-usage' }, async $ => {
     const text = await readPlan($, await $.clock.now())

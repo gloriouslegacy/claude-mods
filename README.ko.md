@@ -202,6 +202,8 @@ blast-radius, replay-theater, change-tutor(v2.0.0에서 제거)는 이 묶음에
 | `qhud.weather` | `true`, `false` — `CT 67%`(컨텍스트 사용률) 표시 여부 | `true` |
 | `qhud.plan` | `true`, `false` — 모델별 주간 한도 표시 여부(5분마다 조회, 토큰 없음) | `true` |
 | `qhud.git` | `true`, `false` — git 상태 표시 여부(갱신마다 `git status` 실행, 토큰 없음) | `true` |
+| `qhud.alert` | `true`, `false` — 한도 임박 알림: 5h·7d·모델별 주간·spend 창의 남은 양이 문턱 이하가 되면 토스트를 띄우고, 메인 Claude(서브에이전트 제외)에게 다음 도구 호출 결과나 프롬프트에 한 줄 알림을 붙임. 창·리셋 주기당 한 번 | `true` |
+| `qhud.alertLeft` | 알림을 띄우는 남은 % 문턱, 1~50(범위 밖이면 5). 최대 15초 늦을 수 있음 | `5` |
 | `qhud.ttl` | `1h`, `5m` — 캐시 만료 알림의 기준 시간 | `1h` |
 
 `/qhud-usage`는 계정 사용량 엔드포인트를 바로 읽어 응답 내용을 출력합니다. 모델별 한도가 이상하거나 보이지 않을 때 쓰세요.
