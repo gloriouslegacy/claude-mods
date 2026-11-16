@@ -9,13 +9,14 @@
 // Refreshed every 15 s and whenever a main-thread response arrives (turn.step); a chart reading is
 // taken at session start and after each main-thread turn. No model calls, so no tokens.
 // Per-model weekly windows ("Fable") come from the account usage endpoint /usage reads, at most every 5 min.
-// autoResume: when a window that blocks the main thread runs out, one timer submits a resume prompt after it resets.
+// autoResume: when a window that blocks the main thread runs out or was alerted, one timer submits a resume prompt after it resets;
+// a backup 4 min later submits it again when no main turn started since and the main thread is idle.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { AlertState, CacheClock, Reading, ResumeState, RunInfo, TcwView } from '../types'
 import { alertLeft, alertLeftWeekly, alertText, crossed, remember, toastText } from './alert'
-import { RESUME_PROMPT, resumeAt, scheduleToast, shouldArm } from './resume'
+import { RESUME_PROMPT, backupAt, resumeAt, scheduleToast, shouldArm, shouldBackup } from './resume'
 import { cachePart, remainingMs, warnMs } from './cache'
 import type { Ttl } from './cache'
 import { gitPart, parseGit } from './git'
@@ -41,29 +42,45 @@ type Options = { ttl: Ttl; layout: 'band' | 'bottom' | 'line'; style: 'chip' | '
 let plan: { at: number; limits: Limit[]; note: string } = { at: -Infinity, limits: [], note: 'not read yet' }
 
 // The one pending auto-resume timer and its time (a hot reload cancels the timer and starts these empty again), and
-// the time the user's own prompt dropped, not armed again. Decided on these, never on the atom, before any await.
+// the times that fired or the user's own prompt dropped, never armed again. Decided on these, never on the atom, before any await.
 let resumer: { at: number; timer: ReturnType<EngineInterface['clock']['after']> } | undefined
-let dropped: number | undefined
+const dropped = new Set<number>()
+// The backup armed when a resume fires (its own timer, bound to that resume's time); main turns started and whether one runs.
+let backup: ReturnType<EngineInterface['clock']['after']> | undefined
+let mainTurns = 0
+let mainBusy = false
 
-/** Drops the pending timer and the atom's time; a prompt not from qhud remembers the time, autoResume off forgets it. */
+const submitResume = ($: EngineInterface): void =>
+  void $.prompt.submit({ text: RESUME_PROMPT }).catch((err: unknown) => $.ui.log(`auto-resume submit failed error=${err instanceof Error ? err.message : String(err)}`))
+
+/** Drops the pending timer, its backup and the atom's time; a prompt not from qhud remembers the time, autoResume off forgets them all. */
 async function cancelResume($: EngineInterface, byPrompt: boolean): Promise<void> {
-  dropped = byPrompt ? (resumer?.at ?? dropped) : undefined
+  backup?.cancel()
+  backup = undefined
+  if (!byPrompt) dropped.clear()
+  else if (resumer) dropped.add(resumer.at)
   if (!resumer) return
   resumer.timer.cancel()
   resumer = undefined
   await update($, resume, () => ({ at: null }))
 }
 
-/** Arms the resume timer for `at` when `shouldArm` says so (a later time re-arms it), deciding before any await so
- * concurrent refreshes arm and toast once. A fired time joins the floor, so a refresh that read `now` before it fired
+/** Arms the resume timer for `at` when `shouldArm` says so (another time re-arms it), deciding before any await so
+ * concurrent refreshes arm and toast once. A fired time joins `dropped`, so a refresh that read `now` before it fired
  * does not arm it again. The toast waits for the record and is skipped when a prompt dropped the timer meanwhile. */
 async function scheduleResume($: EngineInterface, at: number | undefined, now: number): Promise<void> {
-  if (!shouldArm(at, now, Math.max(resumer?.at ?? -Infinity, dropped ?? -Infinity))) return
+  if (!shouldArm(at, now, resumer?.at, dropped)) return
   resumer?.timer.cancel()
   const timer = $.clock.after(at - now, () => {
     resumer = undefined
-    dropped = at
-    $.prompt.submit({ text: RESUME_PROMPT }).catch((err: unknown) => $.ui.log(`auto-resume submit failed error=${err instanceof Error ? err.message : String(err)}`))
+    dropped.add(at)
+    const turns = mainTurns
+    backup?.cancel()
+    backup = $.clock.after(backupAt(at) - at, () => {
+      backup = undefined
+      if (shouldBackup(turns, mainTurns, mainBusy)) submitResume($)
+    })
+    submitResume($)
     update($, resume, () => ({ at: null })).catch((err: unknown) => $.ui.log(`auto-resume record failed error=${err instanceof Error ? err.message : String(err)}`))
   })
   resumer = { at, timer }
@@ -157,12 +174,13 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
       await update($, clock, c => ({ ...c, warnedFor: at }))
       $.ui.toast(`🧊 Prompt cache expires in ${Math.ceil(left / 60_000)} min. Keep working to keep it warm.`)
     }
-    const hit = o.alert ? crossed(limits, await read($, alerts), o.alertLeft, o.alertLeftWeekly) : []
+    const known = o.alert ? await read($, alerts) : undefined
+    const hit = known ? crossed(limits, known, o.alertLeft, o.alertLeftWeekly) : []
     if (hit.length > 0) {
       await update($, alerts, a => remember(a, hit))
       $.ui.toast(toastText(hit, now))
     }
-    if (o.autoResume) await scheduleResume($, resumeAt(limits, model), now)
+    if (o.autoResume) await scheduleResume($, resumeAt(limits, model, known ? remember(known, hit).sent : {}), now)
     else await cancelResume($, false)
   } catch {
     // usage unavailable for a moment: keep the last view
@@ -252,10 +270,17 @@ export const register: Register = (on, options) => {
     return step
   })
 
+  // Main turns hold back the backup resume: one started since the resume fired, or one still running.
+  on('turn.start', ($, e, next) => {
+    if (e.agentId === undefined) [mainTurns, mainBusy] = [mainTurns + 1, true]
+    return next(e)
+  })
+
   // One chart bar per main-thread turn.
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     if (e.agentId !== undefined) return result
+    mainBusy = false
     try {
       await record($, null)
     } catch {

@@ -2,6 +2,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 import { alertLeft, alertLeftWeekly, alertText, crossed, remember, toastText, windowName } from '../hooks/alert'
+import { scheduleToast } from '../hooks/resume'
 import type { AlertState } from '../types'
 
 const MIN = 60_000
@@ -78,7 +79,8 @@ test('the alert reaches the main thread once, never a subagent', { options: { la
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('tool.call', { tool: 'Read' }, () => ({ result: { type: 'text', file: { filePath: '/p/a.ts', content: '', numLines: 0, startLine: 1, totalLines: 0 } } }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  expect(toasts).toEqual(['Usage limit nearly reached: 5h 96% used, 4% left (resets in 1h2m)'])
+  // the alerted 5h window also schedules a resume (v2.12.1 F1)
+  expect(toasts).toEqual(['Usage limit nearly reached: 5h 96% used, 4% left (resets in 1h2m)', scheduleToast(63 * MIN)])
 
   const sub = await $.tool.call({ tool: 'Read', tool_use_id: 'r1', file_path: '/p/a.ts', agentId: 'a1' })
   expect(sub.context).toBeUndefined()
@@ -88,7 +90,7 @@ test('the alert reaches the main thread once, never a subagent', { options: { la
   expect(again.context).toBeUndefined()
 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true }) // refreshes again: same reset, no second alert
-  expect(toasts.length).toBe(1)
+  expect(toasts.length).toBe(2)
 })
 
 test('a prompt before any tool call carries the alert instead', { options: { layout: 'line', git: false, model: false, plan: false } }, async ($, on) => {

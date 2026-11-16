@@ -1,4 +1,4 @@
-// qhud: auto-resume — whether a window that blocks the main thread ran out, when to resume, and what to say.
+// qhud: auto-resume — whether a window that blocks the main thread ran out, when to resume (and back it up), and what to say.
 import { scopeName } from './plan'
 import type { Limit } from './weather'
 
@@ -30,19 +30,40 @@ const latestReset = (limits: readonly Limit[]): number | undefined => {
   return times.length ? Math.max(...times) : undefined
 }
 
-/** When to resume (epoch ms): the latest reset of the exhausted windows + 60 s; undefined when none ran out or none has a reset. */
-export const resumeAt = (limits: readonly Limit[], modelId: unknown): number | undefined => {
-  const latest = latestReset(exhausted(limits, modelId))
+/** The main-blocking windows alerted to the main thread for their current reset (`sent`: kind → resetsAt alerted for,
+ * AlertState.sent; empty when alerts are off). */
+const alerted = (limits: readonly Limit[], modelId: unknown, sent: Readonly<Record<string, string>>): Limit[] =>
+  limits.filter(l => blocks(l.kind, modelId) && l.resetsAt !== undefined && sent[l.kind] === l.resetsAt)
+
+/** The windows that resume: the used-up ones when any is, else the alerted ones (an alerted window does not block the main
+ * thread, so it never delays the resume of one that does). */
+const due = (limits: readonly Limit[], modelId: unknown, sent: Readonly<Record<string, string>>): Limit[] => {
+  const out = exhausted(limits, modelId)
+  return out.length ? out : alerted(limits, modelId, sent)
+}
+
+/** When to resume (epoch ms): the latest reset of the due windows + 60 s; undefined when none is due or none has a reset. */
+export const resumeAt = (limits: readonly Limit[], modelId: unknown, sent: Readonly<Record<string, string>> = {}): number | undefined => {
+  const latest = latestReset(due(limits, modelId, sent))
   return latest === undefined ? undefined : latest + RESUME_DELAY_MS
 }
 
 /** How far ahead a resume may be armed: 8 days covers a weekly reset and stays far under the timer's 2^31 ms limit. */
 export const MAX_AHEAD_MS = 8 * 24 * 60 * 60_000
 
-/** Whether to arm a resume timer for `at`: after `now`, at most 8 days ahead, and later than `floor` — the latest of the
- * pending timer's time and one the user's prompt dropped (-Infinity when neither; a fired time is no longer after `now`). */
-export const shouldArm = (at: number | undefined, now: number, floor: number): at is number =>
-  at !== undefined && at > now && at - now <= MAX_AHEAD_MS && at > floor
+/** Whether to arm a resume timer for `at`: after `now`, at most 8 days ahead, not the pending timer's time, and not a time
+ * that fired or the user's prompt dropped. Any other time, earlier or later, re-arms. */
+export const shouldArm = (at: number | undefined, now: number, pending: number | undefined, dropped: ReadonlySet<number>): at is number =>
+  at !== undefined && at > now && at - now <= MAX_AHEAD_MS && at !== pending && !dropped.has(at)
+
+/** Delay after the latest reset before the backup resume, 4 min after the first, for a first resume that started no turn. */
+export const BACKUP_DELAY_MS = 300_000
+
+/** When the backup of the resume at `at` fires: the same reset + 300 s. */
+export const backupAt = (at: number): number => at - RESUME_DELAY_MS + BACKUP_DELAY_MS
+
+/** Whether the backup submits again: no main turn started since the resume fired (count then → now) and none is running. */
+export const shouldBackup = (turnsThen: number, turnsNow: number, busy: boolean): boolean => turnsNow === turnsThen && !busy
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 

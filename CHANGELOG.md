@@ -2,6 +2,14 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.12.1 (2026-11-17)
+
+- Fixed: auto-resume now also works when the main Claude stops by itself after the nearly-used-up alert, before any window reaches 100%. A window that blocked the main Claude and had its alert sent (5h, 7d, or the main model's weekly) now also schedules the resume 60 seconds after its reset. If a window is really used up, its reset wins. With `qhud.alert` off no alert is sent, so only a real 100% schedules, as before.
+- Changed: when a window that ends earlier is used up, a later schedule is moved up and set again. A time cancelled by a prompt you typed is not set again.
+- Added: backup resume. If, 5 minutes after the reset, no main turn has started since the first resume and the main Claude is idle, the same resume prompt is submitted once more. A prompt you type yourself or turning `autoResume` off cancels both.
+- No existing setting keys changed or removed.
+- Plugins: qhud 0.20.1, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.12.0 (2026-11-16)
 
 - Added: qhud 0.20.0 setting `qhud.alertLeftWeekly` (percent left that triggers the alert for the 7d and model weekly windows, 1 to 50, default 2; anything outside that range is read as 2). `qhud.alertLeft` (default 5) now applies only to the 5h and spend windows. Its key name and value are unchanged, so this is not a setting rename.
