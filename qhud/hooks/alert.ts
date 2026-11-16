@@ -1,12 +1,22 @@
 // qhud: usage-limit alert — which windows are nearly used up (once per window and reset) and what to say.
 import type { AlertState } from '../types'
+import { resumeNote } from './resume'
 import { span } from './weather'
 import type { Limit } from './weather'
 
 export const DEFAULT_LEFT = 5
+export const DEFAULT_LEFT_WEEKLY = 2
 
-/** The `alertLeft` option: the share left (%) at or under which a window alerts; outside 1–50 it is 5. */
-export const alertLeft = (v: unknown): number => (typeof v === 'number' && v >= 1 && v <= 50 ? v : DEFAULT_LEFT)
+const share = (v: unknown, fallback: number): number => (typeof v === 'number' && v >= 1 && v <= 50 ? v : fallback)
+
+/** The `alertLeft` option: the share left (%) at or under which the 5h and spend windows alert; outside 1–50 it is 5. */
+export const alertLeft = (v: unknown): number => share(v, DEFAULT_LEFT)
+
+/** The `alertLeftWeekly` option: the same for the weekly and per-model weekly windows; outside 1–50 it is 2. */
+export const alertLeftWeekly = (v: unknown): number => share(v, DEFAULT_LEFT_WEEKLY)
+
+/** seven_day and the per-model weekly windows (seven_day_<family>). */
+const isWeekly = (kind: string): boolean => kind === 'seven_day' || kind.startsWith('seven_day_')
 
 const NAMES: Record<string, string> = { five_hour: '5h', seven_day: '7d', spend_limit: 'spend' }
 
@@ -27,9 +37,9 @@ export const windowName = (kind: string): string => nameOf(kind).slice(0, NAME_M
 /** Share left with one decimal at most: 95.1 used → 4.9. */
 const leftOf = (l: Limit): number => Math.round((100 - l.percentUsed) * 10) / 10
 
-/** The windows at or under the threshold that were not alerted for their current reset yet. */
-export const crossed = (limits: readonly Limit[], state: AlertState, left: number): Limit[] =>
-  limits.filter(l => leftOf(l) <= left && state.sent[l.kind] !== (l.resetsAt ?? ''))
+/** The windows at or under their threshold (`weekly` for weekly windows, `left` for the rest) not alerted for their current reset yet. */
+export const crossed = (limits: readonly Limit[], state: AlertState, left: number, weekly: number): Limit[] =>
+  limits.filter(l => leftOf(l) <= (isWeekly(l.kind) ? weekly : left) && state.sent[l.kind] !== (l.resetsAt ?? ''))
 
 /** Remembers the windows as alerted for their reset and queues them for the model (one entry per window). */
 export const remember = (state: AlertState, hit: readonly Limit[]): AlertState => ({
@@ -48,9 +58,13 @@ const windowsText = (limits: readonly Limit[], now: number): string =>
     })
     .join('; ')
 
-/** The one line the main thread's model reads. */
-export const alertText = (limits: readonly Limit[], now: number): string =>
-  `[qhud] Usage limit nearly reached: ${windowsText(limits, now)}. Finish the current step, save progress notes, and avoid starting large new work.`
+/** The one line the main thread's model reads; with `autoResume` on, the resume note follows it when a window that
+ * blocks the main thread (five_hour, seven_day, the main model `modelId`'s weekly window) is among the alerted ones. */
+export const alertText = (limits: readonly Limit[], now: number, autoResume = false, modelId: unknown = undefined): string => {
+  const text = `[qhud] Usage limit nearly reached: ${windowsText(limits, now)}. Finish the current step, save progress notes, and avoid starting large new work.`
+  const note = autoResume ? resumeNote(limits, modelId) : ''
+  return note ? `${text} ${note}` : text
+}
 
 /** The same, short, for the user's toast. */
 export const toastText = (limits: readonly Limit[], now: number): string => `Usage limit nearly reached: ${windowsText(limits, now)}`

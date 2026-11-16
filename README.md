@@ -204,7 +204,9 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 | `qhud.plan` | `true`, `false` — show the model-specific weekly window (read every 5 minutes, no tokens) | `true` |
 | `qhud.git` | `true`, `false` — show the git part (runs `git status` on each refresh, no tokens) | `true` |
 | `qhud.alert` | `true`, `false` — usage limit alert: when a window (5h, 7d, model weekly, spend) is nearly used up, show a toast and add a one-line note for the main Claude (not subagents) to its next tool result or prompt; once per window and reset cycle | `true` |
-| `qhud.alertLeft` | percent left that triggers the alert, 1 to 50 (outside that range: 5); it can be up to 15 seconds late | `5` |
+| `qhud.alertLeft` | percent left that triggers the alert for the 5h and spend windows, 1 to 50 (outside that range: 5); it can be up to 15 seconds late | `5` |
+| `qhud.alertLeftWeekly` | percent left that triggers the alert for the 7d and model weekly windows, 1 to 50 (outside that range: 2) | `2` |
+| `qhud.autoResume` | `true`, `false` — when a window that blocks the main Claude (5h, 7d, or the main model's weekly) is really used up (100%), submit one resume prompt 60 seconds after the latest reset time, and add an auto-resume note to the main alert. A toast shows when it is scheduled; a prompt you type yourself cancels it; reset times already past or more than 8 days away are not scheduled. To turn it off: `/config` → `autoResume` off. Claude Code must stay running until the reset. In a permission-bypass mode the resumed work runs tools with nobody watching. The prompt tells Claude to read `docs/mem.md` first if it exists | `true` |
 | `qhud.ttl` | `1h`, `5m` — the prompt-cache TTL the expiry toast counts from | `1h` |
 
 `/qhud-usage` reads the account usage endpoint right away and prints what it answered: use it when the model-specific window looks wrong or missing.

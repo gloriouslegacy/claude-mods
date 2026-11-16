@@ -1,6 +1,6 @@
 {
   "name": "qhud",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "Session status lines (renamed from tcw): model, effort and fallback chain, git status, context fill and usage limits (5h / weekly / per-model weekly), under or above the prompt",
   "author": {
     "name": "gloriouslegacy"
@@ -72,8 +72,20 @@
     "alertLeft": {
       "type": "number",
       "title": "Alert threshold (% left)",
-      "description": "Alert when this share of a usage window or less is left (1–50; other values mean 5)",
+      "description": "Alert when this share of the 5-hour or spend window or less is left (1–50; other values mean 5)",
       "default": 5
+    },
+    "alertLeftWeekly": {
+      "type": "number",
+      "title": "Weekly alert threshold (% left)",
+      "description": "Alert when this share of a weekly or per-model weekly window or less is left (1–50; other values mean 2)",
+      "default": 2
+    },
+    "autoResume": {
+      "type": "boolean",
+      "title": "Resume work when the usage limit resets",
+      "description": "When a 5h, weekly or main-model weekly window runs out, submit a resume prompt a minute after it resets (Claude Code must stay open)",
+      "default": true
     }
   }
 }

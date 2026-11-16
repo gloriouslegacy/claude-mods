@@ -47,6 +47,13 @@ export type TcwView = {
   isLight?: boolean
 }
 
+/** Auto-resume: the resume time (epoch ms) last scheduled; a time at or before it is never scheduled again. */
+export type ResumeState = { at: number | null }
+
+/** The components $.ui.resolve(e) hands the render (Box, Text), passed to hooks/draw.tsx.
+ *  Written by hand: this contract may not import 'claude-code' (plugin validate), so props go unchecked here. */
+export type Ui = Record<'Box' | 'Text', (props: any) => JSX.Element>
+
 declare module 'claude-code' {
   interface PluginState {
     'qhud': {
@@ -56,6 +63,7 @@ declare module 'claude-code' {
       run: RunInfo
       view: TcwView | null
       alert: AlertState
+      resume: ResumeState
     }
   }
 }

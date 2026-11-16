@@ -1,7 +1,7 @@
 // qhud alert tests: threshold, once per window and reset, grouping, and delivery to the main thread only
 import { expect, mock, test } from 'claude-code/testing'
 
-import { alertLeft, alertText, crossed, remember, toastText, windowName } from '../hooks/alert'
+import { alertLeft, alertLeftWeekly, alertText, crossed, remember, toastText, windowName } from '../hooks/alert'
 import type { AlertState } from '../types'
 
 const MIN = 60_000
@@ -14,22 +14,37 @@ test('threshold: 5% left alerts, 5.1% does not', () => {
     { kind: 'seven_day', percentUsed: 95, resetsAt: at(600) }, // 5 left
     { kind: 'seven_day_fable', percentUsed: 94.9, resetsAt: at(600) }, // 5.1 left
   ]
-  expect(crossed(lims, EMPTY, 5).map(l => l.kind)).toEqual(['five_hour', 'seven_day'])
+  expect(crossed(lims, EMPTY, 5, 5).map(l => l.kind)).toEqual(['five_hour', 'seven_day'])
+})
+
+test('weekly windows use their own threshold: 2% left alerts, 2.1% does not; 5h and spend keep 5', () => {
+  const lims = [
+    { kind: 'seven_day', percentUsed: 98, resetsAt: at(600) }, // 2 left
+    { kind: 'seven_day_fable', percentUsed: 97.9, resetsAt: at(600) }, // 2.1 left
+    { kind: 'seven_day_opus', percentUsed: 98.5, resetsAt: at(600) }, // 1.5 left
+    { kind: 'five_hour', percentUsed: 95, resetsAt: at(60) }, // 5 left
+    { kind: 'spend_limit', percentUsed: 94.9 }, // 5.1 left
+  ]
+  expect(crossed(lims, EMPTY, 5, 2).map(l => l.kind)).toEqual(['seven_day', 'seven_day_opus', 'five_hour'])
 })
 
 test('alertLeft outside 1–50 means 5', () => {
   expect([alertLeft(10), alertLeft(1), alertLeft(50), alertLeft(0), alertLeft(51), alertLeft(-3), alertLeft(undefined), alertLeft('7')]).toEqual([10, 1, 50, 5, 5, 5, 5, 5])
 })
 
+test('alertLeftWeekly outside 1–50 means 2', () => {
+  expect([alertLeftWeekly(10), alertLeftWeekly(1), alertLeftWeekly(50), alertLeftWeekly(0), alertLeftWeekly(51), alertLeftWeekly(-3), alertLeftWeekly(undefined), alertLeftWeekly('7')]).toEqual([10, 1, 50, 2, 2, 2, 2, 2])
+})
+
 test('once per window and reset; a new reset alerts again', () => {
   const first = [{ kind: 'five_hour', percentUsed: 96, resetsAt: at(60) }]
   const s1 = remember(EMPTY, first)
-  expect(crossed(first, s1, 5)).toEqual([])
-  expect(crossed([{ kind: 'five_hour', percentUsed: 99, resetsAt: at(60) }], s1, 5)).toEqual([])
+  expect(crossed(first, s1, 5, 2)).toEqual([])
+  expect(crossed([{ kind: 'five_hour', percentUsed: 99, resetsAt: at(60) }], s1, 5, 2)).toEqual([])
   const next = [{ kind: 'five_hour', percentUsed: 97, resetsAt: at(360) }]
-  expect(crossed(next, s1, 5).map(l => l.kind)).toEqual(['five_hour'])
+  expect(crossed(next, s1, 5, 2).map(l => l.kind)).toEqual(['five_hour'])
   const noReset = [{ kind: 'spend_limit', percentUsed: 100 }]
-  expect(crossed(noReset, remember(EMPTY, noReset), 5)).toEqual([])
+  expect(crossed(noReset, remember(EMPTY, noReset), 5, 2)).toEqual([])
 })
 
 test('several windows in one line, named as people say them', () => {
@@ -91,6 +106,27 @@ test('a prompt before any tool call carries the alert instead', { options: { lay
   expect(entered.drop === undefined ? entered.context?.join('\n') : '').toContain('[qhud] Usage limit nearly reached: 7d 98% used, 2% left')
   const main = await $.tool.call({ tool: 'Read', tool_use_id: 'r1', file_path: '/p/a.ts' })
   expect(main.context).toBeUndefined()
+})
+
+test('the options set both thresholds; alertLeftWeekly out of range means 2', { options: { layout: 'line', git: false, model: false, plan: false, alertLeft: 3, alertLeftWeekly: 99 } }, async ($, on) => {
+  mock.clock(on, { now: 0 })
+  const toasts: string[] = []
+  const rateLimits = [
+    { kind: 'five_hour', percentUsed: 96, resetsAt: at(62) }, // 4 left: over 3, no alert
+    { kind: 'seven_day', percentUsed: 97.9, resetsAt: at(62) }, // 2.1 left: no alert
+    { kind: 'seven_day_fable', percentUsed: 98, resetsAt: at(62) }, // 2 left: alerts
+  ]
+  on('session.usage', () => ({ value: { startedAt: 0, rateLimits, context: { tokens: 1, window: 200_000 } } }))
+  on('settings.read', () => ({ value: {} }))
+  on('ui.status', () => ({ value: undefined }))
+  on('ui.toast', (_$, e) => {
+    toasts.push(e.text)
+    return { value: undefined }
+  })
+  on('session.start', () => ({ cwd: '/' }))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  expect(toasts).toEqual(['Usage limit nearly reached: 7d Fable 98% used, 2% left (resets in 1h2m)'])
 })
 
 test('alert off: no toast, no context', { options: { layout: 'line', git: false, model: false, plan: false, alert: false } }, async ($, on) => {

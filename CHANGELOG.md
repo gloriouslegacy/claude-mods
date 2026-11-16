@@ -2,6 +2,15 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.12.0 (2026-11-16)
+
+- Added: qhud 0.20.0 setting `qhud.alertLeftWeekly` (percent left that triggers the alert for the 7d and model weekly windows, 1 to 50, default 2; anything outside that range is read as 2). `qhud.alertLeft` (default 5) now applies only to the 5h and spend windows. Its key name and value are unchanged, so this is not a setting rename.
+- Added: qhud 0.20.0 setting `qhud.autoResume` (`true`/`false`, default `true`, on by default). When a window that blocks the main Claude (5h, 7d, or the main model's weekly) is really used up (100%), qhud submits one resume prompt 60 seconds after the latest reset time. A toast shows when it is scheduled, and the main alert note gains an auto-resume line. A prompt you type yourself cancels it; reset times already past or more than 8 days away are not scheduled. The prompt tells Claude to read `docs/mem.md` first if it exists.
+- To turn auto-resume off: `/config` → `autoResume` off. Claude Code must stay running until the reset, and in a permission-bypass mode the resumed work runs tools with nobody watching.
+- Internal: qhud `drawLines` moved to `hooks/draw.tsx`; no behavior change.
+- No existing setting keys changed or removed.
+- Plugins: qhud 0.20.0, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.11.0 (2026-11-16)
 
 - Added: qhud 0.19.0 warns when a usage window is nearly used up. When what is left in the 5-hour, weekly, model-specific weekly (with `qhud.plan` on) or spend window drops to `qhud.alertLeft` percent or less (default 5), it acts once per window and reset cycle: a toast for you, and a one-line note for the main Claude only (not subagents), appended to the next tool result or to the next prompt if that comes first. The note is not shown on your screen, e.g. `[qhud] Usage limit nearly reached: 7d Fable 96% used, 4% left (resets in 1h2m). Finish the current step, save progress notes, and avoid starting large new work.` Window names are `5h`, `7d`, `7d <Model>` and `spend`. The usage endpoint is still read at most every 5 minutes, so the alert can be up to 15 seconds late.
