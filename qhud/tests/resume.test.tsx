@@ -1,10 +1,15 @@
 // qhud auto-resume tests: exhaustion, main model's weekly window, resume time, fixed texts, the alert's resume note,
 // and with a fake host the one resume timer: scheduled once, submitted once, dropped on the user's prompt or when off,
-// and its backup at reset + 300 s: only with no main turn since and the main thread idle
+// and its backup at reset + 300 s: only with no main turn since and the main thread idle; only a person's prompt cancels, and says so;
+// "↻ HH:MM" ends the limits line while the resume waits, put on and taken off at once
 import { expect, mock, test } from 'claude-code/testing'
 
 import { alertText } from '../hooks/alert'
-import { backupAt, clockText, exhausted, mainWeeklyKind, MAX_AHEAD_MS, RESUME_PROMPT, resumeAt, resumeNote, scheduleToast, shouldArm, shouldBackup } from '../hooks/resume'
+import {
+  backupAt, byPerson, cancelNote, cancelToast, clockText, exhausted, mainWeeklyKind, MAX_AHEAD_MS, RESUME_PROMPT, resumeAt, resumeNote, scheduleToast,
+  shouldArm, shouldBackup,
+} from '../hooks/resume'
+import { bandLines, oneLine, resumeMark, usageBlock, withResume } from '../hooks/view'
 
 const MIN = 60_000
 const at = (min: number) => new Date(min * MIN).toISOString()
@@ -52,7 +57,7 @@ test('alert: resume note only with autoResume on; off is the v2.11.0 text', () =
   const lims = [{ kind: 'five_hour', percentUsed: 96, resetsAt: reset.toISOString() }]
   const now = reset.getTime() - 62 * MIN
   const base = '[qhud] Usage limit nearly reached: 5h 96% used, 4% left (resets in 1h2m). Finish the current step, save progress notes, and avoid starting large new work.'
-  const note = 'Auto-resume is on: if the limit runs out, this session resumes automatically after it resets (2026-11-16 14:05); leave notes so the next turn can continue.'
+  const note = 'Auto-resume is on: this session resumes automatically after the limit resets (2026-11-16 14:05), even if you stop now; leave notes so the next turn can continue.'
   expect(alertText(lims, now)).toBe(base)
   expect(alertText(lims, now, false)).toBe(base)
   expect(alertText(lims, now, true)).toBe(`${base} ${note}`)
@@ -118,7 +123,11 @@ function exhaustedHost(on: Parameters<Parameters<typeof test>[2]>[1], resetMin =
   })
   on('session.model', () => ({ value: OPUS }))
   on('settings.read', () => ({ value: {} }))
-  on('ui.status', () => ({ value: undefined }))
+  const shown: (string | undefined)[] = []
+  on('ui.status', (_$, e) => {
+    shown.push(e.text)
+    return { value: undefined }
+  })
   on('ui.toast', (_$, e) => {
     toasts.push(e.text)
     return { value: undefined }
@@ -127,9 +136,9 @@ function exhaustedHost(on: Parameters<Parameters<typeof test>[2]>[1], resetMin =
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('prompt.submit', (_$, e) => {
     submitted.push(e.text)
-    return { text: e.text }
+    return { text: e.text, context: e.context }
   })
-  return { clock, toasts, submitted, usage, windows }
+  return { clock, toasts, submitted, usage, windows, shown }
 }
 
 const START = { cwd: '/', surface: 'terminal', isInteractive: true } as const
@@ -169,7 +178,7 @@ test('a prompt with no origin drops it too, and the dropped time is not armed ag
   await $.session.start(START)
   await $.prompt.submit({ text: 'no origin', wait: false } as Parameters<typeof $.prompt.submit>[0]) // origin left out on purpose
   await clock.advance(MIN) // ticks still read the same used-up window
-  expect(toasts.length).toBe(1)
+  expect(toasts).toEqual([scheduleToast(61 * MIN), cancelToast(61 * MIN)]) // no second scheduling toast (the cancel one is v2.13.0 F2)
   await clock.advance(61 * MIN)
   expect(submitted).toEqual(['no origin'])
 })
@@ -214,7 +223,7 @@ test('a prompt that drops the resume while it is being recorded gets no scheduli
   await writes[1] // the prompt has dropped the timer and waits on clearing the time
   write.open()
   await Promise.all([start, prompt])
-  expect(toasts).toEqual([])
+  expect(toasts).toEqual([cancelToast(61 * MIN)]) // no scheduling toast; the prompt did cancel a pending resume (v2.13.0 F2)
   expect(submitted).toEqual(['carry on'])
 })
 
@@ -357,4 +366,115 @@ test('autoResume off: nothing scheduled, nothing submitted', { options: { ...QUI
   await clock.advance(62 * MIN)
   expect(toasts).toEqual([])
   expect(submitted).toEqual([])
+})
+
+for (const kind of ['task-notification', 'scheduled-trigger'] as const) {
+  test(`${kind} prompts do not drop the resume scheduled with the alert (v2.13.0 F1)`, ALERTING, async ($, on) => {
+    const { clock, submitted } = exhaustedHost(on, 60, 0, 95)
+    await $.session.start(START)
+    for (const text of ['first', 'second']) await $.prompt.submit({ text, origin: { kind }, wait: false })
+    await clock.advance(61 * MIN)
+    expect(submitted.filter(t => t === RESUME_PROMPT)).toEqual([RESUME_PROMPT])
+  })
+}
+
+test('byPerson: composer, bridge, sdk and no origin are a person; any other origin is not', () => {
+  for (const kind of ['composer', 'bridge', 'sdk']) expect(byPerson({ kind })).toBe(true)
+  expect(byPerson(undefined)).toBe(true)
+  for (const kind of ['task-notification', 'scheduled-trigger', 'plugin', 'unclassified', 'peer', 'channel', 'some-new-kind']) expect(byPerson({ kind })).toBe(false)
+})
+
+test('cancel texts', () => {
+  const t = new Date(2026, 10, 16, 14, 5).getTime()
+  expect(cancelToast(t)).toBe('Auto-resume at 2026-11-16 14:05 cancelled (prompt sent)')
+  expect(cancelNote(t)).toBe('[qhud] Auto-resume at 2026-11-16 14:05 was cancelled because a prompt was sent; it will not resume automatically for this reset.')
+})
+
+const contextOf = (r: { drop?: unknown; context?: readonly string[] }) => (r.drop === undefined ? r.context : undefined)
+
+test("a person's prompt that cancels the pending resume: one toast and a line in the main context (v2.13.0 F2)", QUIET, async ($, on) => {
+  const { toasts } = exhaustedHost(on)
+  await $.session.start(START)
+  const entered = await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
+  expect(toasts).toEqual([scheduleToast(61 * MIN), cancelToast(61 * MIN)])
+  expect(contextOf(entered)).toEqual([cancelNote(61 * MIN)])
+})
+
+test("a person's prompt that cancels the pending backup says the backup's time", QUIET, async ($, on) => {
+  const { clock, toasts, submitted } = exhaustedHost(on)
+  await $.session.start(START)
+  await clock.advance(61 * MIN) // the resume fires; its backup waits for 65 min
+  const entered = await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
+  expect(toasts).toEqual([scheduleToast(61 * MIN), cancelToast(65 * MIN)])
+  expect(contextOf(entered)).toEqual([cancelNote(65 * MIN)])
+  await clock.advance(10 * MIN)
+  expect(submitted).toEqual([RESUME_PROMPT, 'carry on'])
+})
+
+test("no pending resume: a person's prompt gets no cancel toast and no context", QUIET, async ($, on) => {
+  const { toasts } = exhaustedHost(on, 60, 0, 95) // alert off: nothing armed
+  await $.session.start(START)
+  const entered = await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
+  expect(toasts).toEqual([])
+  expect(contextOf(entered)).toBeUndefined()
+})
+
+test('a task notification with a resume pending: no cancel toast and no context', QUIET, async ($, on) => {
+  const { toasts } = exhaustedHost(on)
+  await $.session.start(START)
+  const entered = await $.prompt.submit({ text: 'task done', origin: { kind: 'task-notification' }, wait: false })
+  expect(toasts).toEqual([scheduleToast(61 * MIN)])
+  expect(contextOf(entered)).toBeUndefined()
+})
+
+test('resume mark: local HH:MM at the limits line end; no limits line, no mark and no line of its own (v2.13.0 F4)', () => {
+  const t = new Date(2026, 10, 18, 5, 11).getTime()
+  expect(resumeMark(t)).toBe('↻ 05:11')
+  const v = withResume({ cache: '', isCacheCold: true, limits: [{ name: '', left: 7, reset: '4h42m' }] }, t)
+  expect(usageBlock(v)).toBe('7% (4h42m)  |  ↻ 05:11')
+  expect(oneLine(v)).toBe('7% (4h42m)  |  ↻ 05:11')
+  expect(bandLines(v)).toEqual([{ text: '7% (4h42m)  |  ↻ 05:11', kind: 'usage' }])
+  expect(usageBlock(withResume(v, undefined))).toBe('7% (4h42m)')
+  const bare = withResume({ cache: '', isCacheCold: true, limits: [] }, t)
+  expect(oneLine(bare)).toBe('')
+  expect(bandLines(bare)).toEqual([])
+})
+
+const MARK = resumeMark(61 * MIN)
+
+test('line layout: the mark ends the status as soon as the resume is armed and goes the moment a prompt cancels it (v2.13.0 F4)', QUIET, async ($, on) => {
+  const { shown } = exhaustedHost(on)
+  await $.session.start(START) // no tick in between: the arming itself redraws
+  expect(shown.at(-1)?.endsWith(`0% (1h)  |  ${MARK}`)).toBe(true)
+  await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
+  expect(shown.at(-1)?.endsWith('0% (1h)')).toBe(true)
+})
+
+test('line layout: the mark goes the moment the resume fires and stays gone with only the backup left (v2.13.0 F4)', QUIET, async ($, on) => {
+  const { clock, shown, submitted, usage } = exhaustedHost(on)
+  await $.session.start(START)
+  await clock.advance(60 * MIN)
+  expect(shown.at(-1)?.endsWith(MARK)).toBe(true)
+  usage.shut() // refreshes from here wait on the windows: only the firing itself can redraw
+  await clock.advance(MIN)
+  expect(submitted).toEqual([RESUME_PROMPT])
+  expect(shown.at(-1)?.includes('↻')).toBe(false)
+  usage.open()
+  await clock.advance(15_000) // the next refresh does not bring it back
+  expect(shown.at(-1)?.includes('↻')).toBe(false)
+})
+
+test('bottom layout: the limits line ends with the mark while the resume waits, not after a prompt cancels it (v2.13.0 F4)', { options: { ...QUIET.options, layout: 'bottom' } }, async ($, on) => {
+  exhaustedHost(on)
+  on('ui.render', ($$, e) => {
+    const { Text } = $$.ui.resolve(e)
+    return <Text>? for shortcuts</Text>
+  })
+  const hint = () => $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
+  await $.session.start(START)
+  expect(await (await hint()).find({ text: new RegExp(`^ ?0% \\(1h\\) {2}\\| {2}${MARK} ?$`) })).toBeDefined()
+  await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
+  const after = await hint()
+  expect(await after.find({ text: /^ ?0% \(1h\) ?$/ })).toBeDefined()
+  expect(await after.find({ text: /↻/ })).toBeUndefined()
 })

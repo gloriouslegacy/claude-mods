@@ -1,4 +1,5 @@
-// qhud: auto-resume — whether a window that blocks the main thread ran out, when to resume (and back it up), and what to say.
+// qhud: auto-resume — whether a window that blocks the main thread ran out, when to resume (and back it up), whose prompt
+// cancels it, and what to say.
 import { scopeName } from './plan'
 import type { Limit } from './weather'
 
@@ -82,5 +83,19 @@ export const resumeNote = (limits: readonly Limit[], modelId: unknown): string =
   const latest = latestReset(limits.filter(l => blocks(l.kind, modelId)))
   return latest === undefined
     ? ''
-    : `Auto-resume is on: if the limit runs out, this session resumes automatically after it resets (${clockText(latest)}); leave notes so the next turn can continue.`
+    : `Auto-resume is on: this session resumes automatically after the limit resets (${clockText(latest)}), even if you stop now; leave notes so the next turn can continue.`
 }
+
+/** The prompt origins a person types or sends (the terminal, Remote Control, the SDK host); no origin counts as a person. */
+const PERSON = new Set(['composer', 'bridge', 'sdk'])
+
+/** Whether a prompt from `origin` is a person's and so cancels the auto-resume; notifications, schedules, plugins and any
+ * origin the engine adds later do not. Known limit: a person's input the engine cannot classify (unclassified, peer) does not cancel. */
+export const byPerson = (origin: { kind: string } | undefined): boolean => origin === undefined || PERSON.has(origin.kind)
+
+/** The user's toast when a person's prompt cancelled the pending resume (or backup) at `at`. */
+export const cancelToast = (at: number): string => `Auto-resume at ${clockText(at)} cancelled (prompt sent)`
+
+/** The line added to that prompt's main context. */
+export const cancelNote = (at: number): string =>
+  `[qhud] Auto-resume at ${clockText(at)} was cancelled because a prompt was sent; it will not resume automatically for this reset.`

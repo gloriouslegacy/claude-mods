@@ -47,6 +47,12 @@ export const drawLines = ({ Box, Text }: Ui, v: TcwView, style: 'chip' | 'box' |
             {l.reset ? <Text backgroundColor={bg}> ({l.reset})</Text> : null}
           </Text>
         ))}
+        {v.resume ? (
+          <Text backgroundColor={bg}>
+            {bar}
+            {v.resume}
+          </Text>
+        ) : null}
         {pad}
       </Text>
     ),
@@ -61,5 +67,16 @@ export const drawLines = ({ Box, Text }: Ui, v: TcwView, style: 'chip' | 'box' |
     </Box>
   ) : (
     <Box flexDirection="column">{rows}</Box>
+  )
+}
+
+// Our lines stacked on top of what the engine or other mods render below them (band and bottom layouts).
+export const stackLines = (ui: Ui, v: TcwView, style: 'chip' | 'box' | 'plain', below: unknown) => {
+  const { Box } = ui
+  return (
+    <Box flexDirection="column">
+      {drawLines(ui, v, style)}
+      {below}
+    </Box>
   )
 }

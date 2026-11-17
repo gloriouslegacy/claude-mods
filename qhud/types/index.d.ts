@@ -43,6 +43,8 @@ export type TcwView = {
   isCacheCold: boolean
   limits: LimitView[]
   usd?: string
+  /** The pending auto-resume's mark at the limits line's end ("↻ 05:11"); absent when none is armed. */
+  resume?: string
   /** True when the Claude Code theme is a light one (chip colours follow it). */
   isLight?: boolean
 }

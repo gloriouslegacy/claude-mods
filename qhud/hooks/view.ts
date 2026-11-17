@@ -68,8 +68,23 @@ export const pctText = (pct: number | null): string => (pct === null ? '-%' : `$
 /** "CT 67%" */
 export const ctxBlock = (v: View): string | undefined => (v.weather ? `CT ${pctText(v.weather.pct)}` : undefined)
 
-/** "0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)" */
-export const usageBlock = (v: View): string | undefined => (v.limits.length > 0 ? v.limits.map(limitText).join(SEP) : undefined)
+const pad = (n: number): string => String(n).padStart(2, '0')
+
+/** The pending auto-resume at `at` (epoch ms) as the limits line shows it, local time only: "↻ 05:11". */
+export const resumeMark = (at: number): string => {
+  const d = new Date(at)
+  return `↻ ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** The view with the mark of the resume pending at `at`, or without any mark when none is (undefined). */
+export const withResume = (v: View, at: number | undefined): View => {
+  const { resume: _old, ...rest } = v
+  return at === undefined ? rest : { ...rest, resume: resumeMark(at) }
+}
+
+/** "0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)", then "  |  ↻ 05:11" while a resume is pending; no limits, no line. */
+export const usageBlock = (v: View): string | undefined =>
+  v.limits.length > 0 ? [...v.limits.map(limitText), ...(v.resume ? [v.resume] : [])].join(SEP) : undefined
 
 /** "Opus 5.5 · high   ⎇ main ↑2 ~3   CT 67%" */
 export const topLine = (v: View): string => [modelBlock(v), v.git, ctxBlock(v)].filter(Boolean).join('   ')

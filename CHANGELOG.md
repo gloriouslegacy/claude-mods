@@ -2,6 +2,16 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.13.0 (2026-11-18)
+
+- Fixed: auto-resume is no longer cancelled by prompts Claude Code injects by itself. Background task completion notices (and scheduled triggers or other plugins) arrive as prompts, and qhud treated them as if you had typed something, so the resume was silently dropped. Now only a person's prompt (typed in the composer, Remote Control, or the SDK) cancels it.
+- Added: when your prompt cancels a pending resume (or backup resume), qhud shows a toast with the cancelled time and tells the main Claude in the same prompt, so it can answer correctly if you ask about it.
+- Added: while a resume is scheduled, the limits line ends with `↻ HH:MM` (the resume time). It appears as soon as the resume is set and goes away when it fires or is cancelled.
+- Changed: the auto-resume line in the main alert now says the session resumes after the reset even if Claude stops now, matching how it has worked since v2.12.1.
+- Internal: qhud option parsing moved to `hooks/options.ts`, the shared render tail to `draw.tsx`, and the `/qhud-usage` text to `plan.ts`; no behavior change.
+- No existing setting keys changed or removed.
+- Plugins: qhud 0.21.0, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.12.1 (2026-11-17)
 
 - Fixed: auto-resume now also works when the main Claude stops by itself after the nearly-used-up alert, before any window reaches 100%. A window that blocked the main Claude and had its alert sent (5h, 7d, or the main model's weekly) now also schedules the resume 60 seconds after its reset. If a window is really used up, its reset wins. With `qhud.alert` off no alert is sent, so only a real 100% schedules, as before.

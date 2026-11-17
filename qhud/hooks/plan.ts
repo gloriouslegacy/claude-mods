@@ -64,3 +64,13 @@ export const planLimits = (body: unknown): Limit[] => {
   return out
 }
 
+/** A successful endpoint answer → its windows, the one-line note and the /qhud-usage text (note plus the raw fields, capped). */
+export const usageReport = (status: number, body: unknown): { limits: Limit[]; note: string; text: string } => {
+  const limits = planLimits(body)
+  const keys = body && typeof body === 'object' ? Object.keys(body).join(', ') : typeof body
+  const note = `HTTP ${status}; keys: ${keys}; per-model windows: ${limits.map(l => l.kind).join(', ') || 'none'}`
+  const o = (body ?? {}) as Record<string, unknown>
+  const detail = ['limits', 'seven_day_breakdown', 'weekly_scoped_shares'].map(k => `${k}: ${JSON.stringify(o[k] ?? null)}`).join('\n')
+  return { limits, note, text: `${note}\n${detail.slice(0, 3000)}` }
+}
+
