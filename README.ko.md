@@ -81,8 +81,8 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%
 ```
 AFlow · main + 2 agents · 2 running · 0 waiting
 ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]  Agent Fix the parser 41s
-├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
-└ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
+├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s 14:02–14:02  4.1k tok  ×3  ✎0  [+]
+└ ● implementer "Fix the parser"  Fable 5.1  41s 14:02–  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
 ▸ unlisted loops (1)
 last: implementer · Edit src/parser.ts
 ```
@@ -93,6 +93,7 @@ last: implementer · Edit src/parser.ts
 | `Explore "Summarize …"` | 서브에이전트 종류와 작업. 다른 에이전트가 띄운 것은 그 아래로 들여씁니다 |
 | `Fable 5.1` | 실행 모델. Fable은 별도 주간 한도를 쓰므로 자주색으로 강조 |
 | `41s` | 실행 시간 |
+| `14:02–14:04` | 서브에이전트 행에만, 실행 시간 바로 뒤에 시작·끝 시각(로컬 24시간제). 실행 중이면 `14:02–`. 띠·패널·`/aflow text` 모두 같고 설정은 없습니다 |
 | `22.7k tok` | 쓴 토큰(입력·캐시 쓰기·출력, 캐시 읽기 제외) |
 | `×9` | 도구 호출 횟수 |
 | `✎2` | 만들거나 고친 파일 수 |

@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.16.0 (2026-11-24)
+
+- Added: subagent rows in the agent-flow strip, pane and `/aflow text` show the start and end time right after the run time, as `HH:MM–HH:MM` (local 24-hour). A running subagent shows `HH:MM–`. The main row is unchanged.
+- No setting keys changed or removed.
+- Plugins: qhud 0.23.0, pinboard 0.8.0, agent-flow 0.13.0, qcompact 0.3.0.
+
 ## v2.15.0 (2026-11-24)
 
 - Removed: `qhud.layout` value `line` (the single status line Claude Code drew in one colour with a `⚠ qhud:` prefix). A saved `line` value now falls back to `bottom`, not to `compact`. If you want a single line, pick `compact` in `/config`.

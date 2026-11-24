@@ -84,6 +84,13 @@ export const clockTime = (ms: number): string => {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
+/** A subagent's elapsed time and local wall-clock span, for the band, the pane and /aflow text (v2.16.0 F1):
+ *  "2m00s 14:02–14:04"; while it works (or has no end yet) "41s 14:02–". */
+export const rowTime = (row: { startedAt: number; endedAt?: number }, isWorking: boolean, now: number): string => {
+  const end = isWorking ? undefined : row.endedAt
+  return `${elapsed((end ?? now) - row.startedAt)} ${clockTime(row.startedAt).slice(0, 5)}–${end === undefined ? '' : clockTime(end).slice(0, 5)}`
+}
+
 const one = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() !== '' ? v.replace(/\s+/g, ' ').trim() : undefined)
 
 /** A tool call as one short label: "Edit src/parser.ts", "Bash npm test", "Grep TODO". */
@@ -193,8 +200,7 @@ export const asText = (
   lines.push(`[${main.isRunning ? 'run' : 'idle'}] main  ${short(main.model)}  ${fmt(main.tokens)} tok  ×${main.calls}  ✎${main.edits}${tail(main, main.isRunning)}`)
   for (const { row, depth, isLast } of tree(listed)) {
     const working = !!row.isBusy || isActive(row.status)
-    const time = elapsed((working ? now : (row.endedAt ?? now)) - row.startedAt)
-    lines.push(`${'  '.repeat(depth)}${isLast ? '└' : '├'} [${word(row)}] ${row.type}${row.task ? ` "${row.task}"` : ''}  ${short(row.model)}  ${time}  ${fmt(row.tokens)} tok  ×${row.calls}  ✎${row.edits}${tail(row, working)}`)
+    lines.push(`${'  '.repeat(depth)}${isLast ? '└' : '├'} [${word(row)}] ${row.type}${row.task ? ` "${row.task}"` : ''}  ${short(row.model)}  ${rowTime(row, working, now)}  ${fmt(row.tokens)} tok  ×${row.calls}  ✎${row.edits}${tail(row, working)}`)
   }
   if (last) lines.push(`last: ${last}`)
   return lines.join('\n')

@@ -82,8 +82,8 @@ Once a subagent exists, a one-line strip `main + N agents · R running · W wait
 ```
 AFlow · main + 2 agents · 2 running · 0 waiting
 ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]  Agent Fix the parser 41s
-├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
-└ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
+├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s 14:02–14:02  4.1k tok  ×3  ✎0  [+]
+└ ● implementer "Fix the parser"  Fable 5.1  41s 14:02–  22.7k tok  ×9  ✎2  [sub_Diff] [+]  Bash npm test 3m20s  ⚠ slow 3m20s
 ▸ unlisted loops (1)
 last: implementer · Edit src/parser.ts
 ```
@@ -94,6 +94,7 @@ last: implementer · Edit src/parser.ts
 | `Explore "Summarize …"` | The subagent's type and task; children are indented under the agent that spawned them |
 | `Fable 5.1` | The model it runs on; Fable is drawn magenta, since it spends its own weekly cap |
 | `41s` | How long it has run (or ran) |
+| `14:02–14:04` | Subagent rows only, right after the run time: start and end time, local 24-hour. A running agent shows `14:02–`. Same in the strip, the pane and `/aflow text`; no setting |
 | `22.7k tok` | Tokens it spent: input, cache writes and output (cache reads left out) |
 | `×9` | Tool calls it made |
 | `✎2` | Files it created or edited |

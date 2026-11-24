@@ -4,13 +4,13 @@
 // rows below with buttons that open the pane.
 //   AFlow · main + 2 agents · 2 running · 0 waiting   (magenta bold)
 //   ● main  Fable 5.1  running  38.2k tok  ×14  ✎3  [main_Diff] [+]   Agent "Fix the parser" 41s
-//   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s  4.1k tok  ×3  ✎0  [+]
-//   └ ● implementer "Fix the parser"  Fable 5.1  41s  22.7k tok  ×9  ✎2  [sub_Diff] [+]   Bash npm test 38s  ⚠ slow 38s
+//   ├ ● Explore "Summarize src/greet.js"  Haiku 4.5  2s 14:02–14:02  4.1k tok  ×3  ✎0  [+]
+//   └ ● implementer "Fix the parser"  Fable 5.1  41s 14:02–  22.7k tok  ×9  ✎2  [sub_Diff] [+]   Bash npm test 38s  ⚠ slow 38s
 //   ▸ unlisted loops (1)
 //   last: implementer · Edit src/parser.ts
 import type { AgentRow, Change, FlowView, MainRow, ToolRecord, Ui } from '../types'
 import { lineCount, render } from './diff'
-import { COLLAPSED_LINES, changesOf, clockTime, doing, elapsed, fmt, headline, isCapped, isWorking, short, shortPath, tree } from './flow'
+import { COLLAPSED_LINES, changesOf, clockTime, doing, elapsed, fmt, headline, isCapped, isWorking, rowTime, short, shortPath, tree } from './flow'
 import type { Doing, Limits } from './flow'
 
 /** What pressing a button does: change the view, open an agent's diffs, open or close a row's [+] details. */
@@ -106,7 +106,7 @@ export const agentRow = (ui: Ui, row: AgentRow, prefix: string, indent: string, 
         </Box>
         <Box flexDirection="row" gap={1} flexShrink={0}>
           <Text wrap="truncate" color={isCapped(row.model) ? 'magenta' : undefined} bold={isCapped(row.model)}>{short(row.model)}</Text>
-          <Text wrap="truncate" dimColor>{active ? elapsed(now - row.startedAt) : elapsed((row.endedAt ?? now) - row.startedAt)}</Text>
+          <Text wrap="truncate" dimColor>{rowTime(row, active, now)}</Text>
           <Text wrap="truncate">{`${fmt(row.tokens)} tok`}</Text>
           <Text wrap="truncate">{`×${row.calls}`}</Text>
           <Text wrap="truncate">{`✎${row.edits}`}</Text>
