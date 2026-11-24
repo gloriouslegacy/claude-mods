@@ -30,11 +30,11 @@ Claude Code 모드(함수 훅 플러그인) 4개입니다. **Claude Code 2.1.287
 프롬프트 아래에 2줄로 표시합니다(`qhud.layout`: `bottom`, 기본값). `band`로 바꾸면 프롬프트 위에 표시합니다. 앞에 플러그인 이름이 붙지 않습니다.
 
 ```
-Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
+Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%
 0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 ```
 
-`qhud.layout`을 `line`으로 바꾸면 같은 내용을 프롬프트 아래 상태줄 한 줄로 보여줍니다. 이때는 Claude Code가 앞에 `⚠ qhud:`를 붙이고 한 가지 색으로 그리기 때문에 이름을 짧게 했습니다. `compact`로 바꾸면 같은 한 줄을 프롬프트 아래에 `bottom`과 같은 색으로, 접두 없이 보여줍니다.
+한 줄로 보고 싶으면 `qhud.layout`을 `compact`로 바꾸세요. 같은 내용을 프롬프트 아래 한 줄에 `bottom`과 같은 색으로, 접두 없이 보여줍니다.
 
 | 항목 | 뜻 |
 |---|---|
@@ -42,7 +42,7 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 | `high` | 마지막 응답의 추론 강도(`low` / `medium` / `high` / `xhigh` / `max`, `--effort`·`/effort`로 설정). 첫 응답 전에는 settings에 그 모델용으로 적힌 `effortLevel`(`{ "claude-opus-5-5": { "effortLevel": "high" } }`), 없으면 맨 위 `effortLevel` |
 | `⤷ Sonnet › Haiku` | settings.json의 `fallbackModel`에 적힌 폴백 체인. 폴백 모델이 응답하는 동안은 `⤷ now Sonnet 4.5`. 명령줄 `--fallback-model`로만 준 체인은 모드가 읽을 수 없어서, 폴백이 실제로 응답할 때만 보임 |
 | `⎇ main ↑2 ~3` | git 상태: 브랜치(분리된 HEAD는 `@1a2b3c4`), `↑` 푸시할 커밋, `↓` 받아올 커밋, `+` 스테이징됨, `~` 수정됨, `?` 추적 안 됨, `!` 충돌. 깨끗하면 `✓`. 저장소가 아니면 생략 |
-| `CT 67%` | 컨텍스트 사용률. 첫 응답 전에는 `-%`. 막대는 50% 넘으면 노랑, 80% 넘으면 빨강 |
+| `67%` | 컨텍스트 사용률. 첫 응답 전에는 `-%`. 막대는 50% 넘으면 노랑, 80% 넘으면 빨강 |
 | `98% (2h16m)` · `82% (2d 12h)` | 5시간·주간(전체 모델) 사용 한도의 남은 비율과 리셋까지 남은 시간. 50% 미만 노랑, 20% 미만 빨강. 구독 계정만 표시 |
 | `0% (2d 11h)` | `/usage`처럼 모델별 주간 한도(이름 없이 맨 앞). 계정에 별도 한도가 있는 모델만 표시. 계정 사용량 엔드포인트를 최대 5분마다 읽음(토큰 사용 없음). `qhud.plan` = `false`로 끔. `/qhud-usage`로 즉시 조회해 응답 확인 |
 
@@ -196,10 +196,10 @@ blast-radius, replay-theater, change-tutor(v2.0.0에서 제거)는 이 묶음에
 
 | 설정(`/config`) | 값 | 기본값 |
 |---|---|---|
-| `qhud.layout` | `bottom`(프롬프트 아래 2줄), `band`(프롬프트 위 2줄), `line`(프롬프트 아래 한 줄, 단색, `⚠ qhud:` 접두), `compact`(프롬프트 아래 색 있는 한 줄) | `bottom` |
+| `qhud.layout` | `bottom`(프롬프트 아래 2줄), `band`(프롬프트 위 2줄), `compact`(프롬프트 아래 색 있는 한 줄) | `bottom` |
 | `qhud.style` | `plain`, `chip`(줄마다 음영 배경), `box`(둥근 테두리, 2줄 더 차지). band일 때만 적용 | `plain` |
 | `qhud.model` | `true`, `false` — 모델·추론 강도·폴백 체인 표시 여부 | `true` |
-| `qhud.weather` | `true`, `false` — `CT 67%`(컨텍스트 사용률) 표시 여부 | `true` |
+| `qhud.weather` | `true`, `false` — `67%`(컨텍스트 사용률) 표시 여부 | `true` |
 | `qhud.plan` | `true`, `false` — 모델별 주간 한도 표시 여부(5분마다 조회, 토큰 없음) | `true` |
 | `qhud.git` | `true`, `false` — git 상태 표시 여부(갱신마다 `git status` 실행, 토큰 없음) | `true` |
 | `qhud.alert` | `true`, `false` — 한도 임박 알림: 5h·7d·모델별 주간·spend 창의 남은 양이 문턱 이하가 되면 토스트를 띄우고, 메인 Claude(서브에이전트 제외)에게 다음 도구 호출 결과나 프롬프트에 한 줄 알림을 붙임. 창·리셋 주기당 한 번 | `true` |

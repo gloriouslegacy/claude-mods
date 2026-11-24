@@ -1,11 +1,10 @@
-// qhud: the session at a glance, in one of four layouts (option `layout`):
+// qhud: the session at a glance, in one of three layouts (option `layout`):
 //   band — two to three coloured lines above the prompt, no plugin-name prefix:
-//     Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
+//     Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%
 //     0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 // (the prompt-cache clock is no longer drawn; it still warns once before the cache expires)
 //   bottom (default) — the same two lines under the prompt, above the engine's hint line.
-//   line — the same in one status line under the prompt (the engine prefixes "⚠ qhud:").
-//   compact — line's text, coloured as bottom, in one line where bottom draws (no prefix).
+//   compact — the same text, coloured as bottom, in one line where bottom draws.
 // /qhud-usage reads the account usage endpoint now and shows what it answered (for the per-model windows).
 // Refreshed every 15 s and whenever a main-thread response arrives (turn.step); a chart reading is
 // taken at session start and after each main-thread turn. No model calls, so no tokens.
@@ -25,7 +24,7 @@ import { parseOptions } from './options'
 import type { Options } from './options'
 import { PLAN_EVERY_MS, USAGE_HEADERS, USAGE_URL, usageReport } from './plan'
 import { stackLines } from './draw'
-import { build, oneLine, withResume } from './view'
+import { build, withResume } from './view'
 import { BARS, limitViews } from './weather'
 import type { Limit } from './weather'
 
@@ -53,16 +52,14 @@ let mainBusy = false
 const submitResume = ($: EngineInterface): void =>
   void $.prompt.submit({ text: RESUME_PROMPT }).catch((err: unknown) => $.ui.log(`auto-resume submit failed error=${err instanceof Error ? err.message : String(err)}`))
 
-/** Puts the pending resume's mark on the stored view (or takes it off) at once, not on the next tick, and redraws the line layout. */
-async function markResume($: EngineInterface, o: Options): Promise<void> {
+/** Puts the pending resume's mark on the stored view (or takes it off) at once, not on the next tick. */
+async function markResume($: EngineInterface): Promise<void> {
   await update($, view, cur => (cur ? withResume(cur, resumer?.at) : null))
-  const v = await read($, view)
-  $.ui.status(o.layout === 'line' && v ? oneLine(v) : undefined)
 }
 
 /** Drops the pending timer, its backup and the atom's time; a person's prompt remembers the time, autoResume off forgets
  * them all. Returns the time that was pending (the resume's, else the backup's), undefined when none was. */
-async function cancelResume($: EngineInterface, o: Options, byPrompt: boolean): Promise<number | undefined> {
+async function cancelResume($: EngineInterface, byPrompt: boolean): Promise<number | undefined> {
   const pending = resumer?.at ?? backup?.at
   backup?.timer.cancel()
   backup = undefined
@@ -72,14 +69,14 @@ async function cancelResume($: EngineInterface, o: Options, byPrompt: boolean): 
   resumer.timer.cancel()
   resumer = undefined
   await update($, resume, () => ({ at: null }))
-  await markResume($, o)
+  await markResume($)
   return pending
 }
 
 /** Arms the resume timer for `at` when `shouldArm` says so (another time re-arms it), deciding before any await so
  * concurrent refreshes arm and toast once. A fired time joins `dropped`, so a refresh that read `now` before it fired
  * does not arm it again. The toast waits for the record and is skipped when a prompt dropped the timer meanwhile. */
-async function scheduleResume($: EngineInterface, o: Options, at: number | undefined, now: number): Promise<void> {
+async function scheduleResume($: EngineInterface, at: number | undefined, now: number): Promise<void> {
   if (!shouldArm(at, now, resumer?.at, dropped)) return
   resumer?.timer.cancel()
   const timer = $.clock.after(at - now, () => {
@@ -96,13 +93,13 @@ async function scheduleResume($: EngineInterface, o: Options, at: number | undef
     }
     submitResume($)
     update($, resume, () => ({ at: null }))
-      .then(() => markResume($, o))
+      .then(() => markResume($))
       .catch((err: unknown) => $.ui.log(`auto-resume record failed error=${err instanceof Error ? err.message : String(err)}`))
   })
   resumer = { at, timer }
   await update($, resume, () => ({ at }))
   if (resumer?.at === at) $.ui.toast(scheduleToast(at))
-  await markResume($, o)
+  await markResume($)
 }
 
 /** Reads the endpoint now; `note` says what happened, for /qhud-usage. */
@@ -180,7 +177,7 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
     })
     if (typeof settings.theme === 'string' && settings.theme.includes('light')) v.isLight = true
     await update($, view, () => v)
-    await markResume($, o) // the pending resume's mark, and the line layout's status
+    await markResume($) // the pending resume's mark
     const left = state.lastAt === null ? 0 : remainingMs(state.lastAt, ttl, now)
     if (state.lastAt !== null && left > 0 && left <= warnMs(ttl) && state.warnedFor !== state.lastAt) {
       const at = state.lastAt
@@ -193,8 +190,8 @@ async function refresh($: EngineInterface, o: Options): Promise<void> {
       await update($, alerts, a => remember(a, hit))
       $.ui.toast(toastText(hit, now))
     }
-    if (o.autoResume) await scheduleResume($, o, resumeAt(limits, model, known ? remember(known, hit).sent : {}), now)
-    else await cancelResume($, o, false)
+    if (o.autoResume) await scheduleResume($, resumeAt(limits, model, known ? remember(known, hit).sent : {}), now)
+    else await cancelResume($, false)
   } catch {
     // usage unavailable for a moment: keep the last view
   }
@@ -302,7 +299,7 @@ export const register: Register = (on, options) => {
   // A person's prompt (`byPerson`; origin left out included: the test engine does) resumes by hand: the auto-resume is
   // dropped, and a pending one is reported by toast and in the prompt's context. Notifications, schedules and plugins do not drop it.
   on('prompt.submit', async ($, e, next) => {
-    const gone = byPerson(e.origin) ? await cancelResume($, o, true) : undefined
+    const gone = byPerson(e.origin) ? await cancelResume($, true) : undefined
     if (gone !== undefined) $.ui.toast(cancelToast(gone))
     const note = o.alert ? await takeAlert($, o.autoResume) : undefined
     const add = [note, gone === undefined ? undefined : cancelNote(gone)].filter((s): s is string => s !== undefined)
@@ -325,7 +322,7 @@ export const register: Register = (on, options) => {
 
   // bottom and compact: our lines (compact: one line) under the prompt, the engine's hint line kept below them.
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
-    if (o.layout !== 'bottom' && o.layout !== 'compact') return next(e)
+    if (o.layout === 'band') return next(e)
     const v = await read($, view)
     if (!v) return next(e)
     return stackLines($.ui.resolve(e), v, o.layout === 'compact' ? 'compact' : o.style, await next(e))

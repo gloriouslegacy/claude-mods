@@ -123,11 +123,7 @@ function exhaustedHost(on: Parameters<Parameters<typeof test>[2]>[1], resetMin =
   })
   on('session.model', () => ({ value: OPUS }))
   on('settings.read', () => ({ value: {} }))
-  const shown: (string | undefined)[] = []
-  on('ui.status', (_$, e) => {
-    shown.push(e.text)
-    return { value: undefined }
-  })
+  on('ui.status', () => ({ value: undefined }))
   on('ui.toast', (_$, e) => {
     toasts.push(e.text)
     return { value: undefined }
@@ -138,11 +134,11 @@ function exhaustedHost(on: Parameters<Parameters<typeof test>[2]>[1], resetMin =
     submitted.push(e.text)
     return { text: e.text, context: e.context }
   })
-  return { clock, toasts, submitted, usage, windows, shown }
+  return { clock, toasts, submitted, usage, windows }
 }
 
 const START = { cwd: '/', surface: 'terminal', isInteractive: true } as const
-const QUIET = { options: { layout: 'line', git: false, model: false, plan: false, alert: false } }
+const QUIET = { options: { layout: 'compact', git: false, model: false, plan: false, alert: false } }
 
 test('a used-up window schedules one resume, toasts once and submits the fixed prompt once', QUIET, async ($, on) => {
   const { clock, toasts, submitted } = exhaustedHost(on)
@@ -442,26 +438,32 @@ test('resume mark: local HH:MM at the limits line end; no limits line, no mark a
 
 const MARK = resumeMark(61 * MIN)
 
-test('line layout: the mark ends the status as soon as the resume is armed and goes the moment a prompt cancels it (v2.13.0 F4)', QUIET, async ($, on) => {
-  const { shown } = exhaustedHost(on)
+// QUIET's compact line under the prompt, as drawn now.
+const compactLine = ($: Parameters<Parameters<typeof test>[2]>[0]) =>
+  $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '' } })
+
+test('compact layout: the mark ends the line as soon as the resume is armed and goes the moment a prompt cancels it (v2.13.0 F4)', QUIET, async ($, on) => {
+  exhaustedHost(on)
   await $.session.start(START) // no tick in between: the arming itself redraws
-  expect(shown.at(-1)?.endsWith(`0% (1h)  |  ${MARK}`)).toBe(true)
+  expect(await (await compactLine($)).find({ text: new RegExp(`0% \\(1h\\) {2}\\| {2}${MARK} ?$`) })).toBeDefined()
   await $.prompt.submit({ text: 'carry on', origin: { kind: 'composer' }, wait: false })
-  expect(shown.at(-1)?.endsWith('0% (1h)')).toBe(true)
+  const after = await compactLine($)
+  expect(await after.find({ text: /0% \(1h\) ?$/ })).toBeDefined()
+  expect(await after.find({ text: /↻/ })).toBeUndefined()
 })
 
-test('line layout: the mark goes the moment the resume fires and stays gone with only the backup left (v2.13.0 F4)', QUIET, async ($, on) => {
-  const { clock, shown, submitted, usage } = exhaustedHost(on)
+test('compact layout: the mark goes the moment the resume fires and stays gone with only the backup left (v2.13.0 F4)', QUIET, async ($, on) => {
+  const { clock, submitted, usage } = exhaustedHost(on)
   await $.session.start(START)
   await clock.advance(60 * MIN)
-  expect(shown.at(-1)?.endsWith(MARK)).toBe(true)
+  expect(await (await compactLine($)).find({ text: new RegExp(`${MARK} ?$`) })).toBeDefined()
   usage.shut() // refreshes from here wait on the windows: only the firing itself can redraw
   await clock.advance(MIN)
   expect(submitted).toEqual([RESUME_PROMPT])
-  expect(shown.at(-1)?.includes('↻')).toBe(false)
+  expect(await (await compactLine($)).find({ text: /↻/ })).toBeUndefined()
   usage.open()
   await clock.advance(15_000) // the next refresh does not bring it back
-  expect(shown.at(-1)?.includes('↻')).toBe(false)
+  expect(await (await compactLine($)).find({ text: /↻/ })).toBeUndefined()
 })
 
 test('bottom layout: the limits line ends with the mark while the resume waits, not after a prompt cancels it (v2.13.0 F4)', { options: { ...QUIET.options, layout: 'bottom' } }, async ($, on) => {

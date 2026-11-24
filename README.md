@@ -31,11 +31,11 @@ Korean guide: [README.ko.md](README.ko.md)
 Two lines under the prompt (`qhud.layout`: `bottom`, the default), no prefix:
 
 ```
-Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
+Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%
 0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 ```
 
-With `qhud.layout` = `band` the same two lines sit above the prompt. With `qhud.layout` = `line` the same goes in one status line under the prompt (Claude Code prefixes it with `⚠ qhud:` and draws it in one colour, which is why the name is short). With `qhud.layout` = `compact` you get the same single line under the prompt, coloured like `bottom` and without the prefix.
+With `qhud.layout` = `band` the same two lines sit above the prompt. For a single line, set `qhud.layout` = `compact`: the same content in one line under the prompt, coloured like `bottom` and without a prefix.
 
 | Part | Meaning |
 |---|---|
@@ -43,7 +43,7 @@ With `qhud.layout` = `band` the same two lines sit above the prompt. With `qhud.
 | `high` | Reasoning effort of the last response (`low` / `medium` / `high` / `xhigh` / `max`; `--effort`, `/effort`); before the first response, the model's own `effortLevel` from settings (`{ "claude-opus-5-5": { "effortLevel": "high" } }`), else the top-level `effortLevel` |
 | `⤷ Sonnet › Haiku` | The fallback chain from `fallbackModel` in settings.json. While a fallback is answering it reads `⤷ now Sonnet 4.5`. A chain given only with `--fallback-model` is not visible to mods, so it shows only once a fallback answers |
 | `⎇ main ↑2 ~3` | Git status: branch (`@1a2b3c4` when detached), `↑` to push, `↓` to pull, `+` staged, `~` modified, `?` untracked, `!` conflicts; `✓` when clean. Left out outside a repository |
-| `CT 67%` | Context window fill; `-%` before the first response. Turns yellow past 50% and red past 80% |
+| `67%` | Context window fill; `-%` before the first response. Turns yellow past 50% and red past 80% |
 | `98% (2h16m)` · `82% (2d 12h)` | Usage left in the 5-hour and weekly (all models) windows and time to reset; green, yellow under 50%, red under 20%. Subscriptions only |
 | `0% (2d 11h)` | A model-specific weekly window, unnamed and always first; shown only for models the account has a separate cap on, as `/usage` shows it (one per model that has its own cap). Read from the account usage endpoint at most every 5 minutes, no tokens; off with `qhud.plan` = `false`. `/qhud-usage` reads the endpoint now and shows what it answered |
 
@@ -197,10 +197,10 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 
 | Setting (`/config`) | Values | Default |
 |---|---|---|
-| `qhud.layout` | `bottom` (2 lines under the prompt), `band` (2 lines above it), `line` (one status line under it, one colour, `⚠ qhud:` prefix), `compact` (one coloured line under it) | `bottom` |
+| `qhud.layout` | `bottom` (2 lines under the prompt), `band` (2 lines above it), `compact` (one coloured line under it) | `bottom` |
 | `qhud.style` | `plain`, `chip` (each line on a shaded background), `box` (one rounded frame; two rows taller) — band only | `plain` |
 | `qhud.model` | `true`, `false` — show the model, effort and fallback chain | `true` |
-| `qhud.weather` | `true`, `false` — show `CT 67%` (context fill) | `true` |
+| `qhud.weather` | `true`, `false` — show `67%` (context fill) | `true` |
 | `qhud.plan` | `true`, `false` — show the model-specific weekly window (read every 5 minutes, no tokens) | `true` |
 | `qhud.git` | `true`, `false` — show the git part (runs `git status` on each refresh, no tokens) | `true` |
 | `qhud.alert` | `true`, `false` — usage limit alert: when a window (5h, 7d, model weekly, spend) is nearly used up, show a toast and add a one-line note for the main Claude (not subagents) to its next tool result or prompt; once per window and reset cycle | `true` |

@@ -1,5 +1,5 @@
 // qhud: what the lines show, gathered once per refresh, and their text.
-//   Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
+//   Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%
 //   0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 import type { LimitView, TcwView } from '../types'
 import { delta, filledCells, fmt, forecast, limitText, sparkline } from './weather'
@@ -65,8 +65,8 @@ export const modelBlock = (v: View): string | undefined => {
 /** "67%", or "-%" before the first response. */
 export const pctText = (pct: number | null): string => (pct === null ? '-%' : `${pct}%`)
 
-/** "CT 67%" */
-export const ctxBlock = (v: View): string | undefined => (v.weather ? `CT ${pctText(v.weather.pct)}` : undefined)
+/** "67%", the context piece. */
+export const ctxBlock = (v: View): string | undefined => (v.weather ? pctText(v.weather.pct) : undefined)
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
@@ -86,13 +86,13 @@ export const withResume = (v: View, at: number | undefined): View => {
 export const usageBlock = (v: View): string | undefined =>
   v.limits.length > 0 ? [...v.limits.map(limitText), ...(v.resume ? [v.resume] : [])].join(SEP) : undefined
 
-/** "Opus 5.5 · high   ⎇ main ↑2 ~3   CT 67%" */
+/** "Opus 5.5 · high   ⎇ main ↑2 ~3   67%" */
 export const topLine = (v: View): string => [modelBlock(v), v.git, ctxBlock(v)].filter(Boolean).join('   ')
 
-/** The one-line layout: model  |  git  |  CT …  |  limits */
+/** The compact layout: model  |  git  |  67%  |  limits */
 export const oneLine = (v: View): string => [modelBlock(v), v.git, ctxBlock(v), usageBlock(v)].filter(Boolean).join(SEP)
 
-/** The band layout: model, git and CT / usage limits, model-specific first; empty lines left out. */
+/** The band layout: model, git and context / usage limits, model-specific first; empty lines left out. */
 export const bandLines = (v: View): { text: string; kind: 'model' | 'usage' }[] => {
   const top = topLine(v)
   const lines: { text: string; kind: 'model' | 'usage' }[] = []

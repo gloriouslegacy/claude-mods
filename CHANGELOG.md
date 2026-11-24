@@ -2,6 +2,13 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.15.0 (2026-11-24)
+
+- Removed: `qhud.layout` value `line` (the single status line Claude Code drew in one colour with a `⚠ qhud:` prefix). A saved `line` value now falls back to `bottom`, not to `compact`. If you want a single line, pick `compact` in `/config`.
+- Changed: the context piece shows only the percentage (no `CT` label) in every layout, e.g. `67%` instead of `CT 67%`.
+- No setting key names changed; only the `line` value is gone.
+- Plugins: qhud 0.23.0, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.14.0 (2026-11-24)
 
 - Added: `qhud.layout` value `compact`. It shows the same single line as `line`, but under the prompt where `bottom` draws, with the same colours as `band`/`bottom` and no `⚠ qhud:` prefix. `line` stays as it was: Claude Code draws it as its own status line, so it is always one colour with the `⚠ qhud:` prefix.

@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { cachePart } from '../hooks/cache'
 import { gitPart, parseGit } from '../hooks/git'
 import { chainName, modelName, settingsEffort } from '../hooks/model'
+import { parseOptions } from '../hooks/options'
 import { planLimits } from '../hooks/plan'
 import { drawLine, drawLines } from '../hooks/draw'
 import { bandLines, build, oneLine, withResume } from '../hooks/view'
@@ -41,6 +42,10 @@ test('git status part', () => {
   expect(s && gitPart(s)).toBe('⎇ main ↑2 ↓1 ~1 ?1')
 })
 
+test('layout option: the removed line and unknown values fall back to bottom', () => {
+  expect(['band', 'bottom', 'compact', 'line', 'nope', undefined].map(layout => parseOptions({ layout }).layout)).toEqual(['band', 'bottom', 'compact', 'bottom', 'bottom', 'bottom'])
+})
+
 const sample = build({
   model: 'Opus 5.5',
   effort: 'high',
@@ -57,14 +62,14 @@ const sample = build({
 
 test('one line and band layouts', () => {
   expect(oneLine(sample)).toBe(
-    'Opus 5.5 · high · ⤷ Sonnet › Haiku  |  ⎇ main ↑2 ~3  |  CT 67%  |  98% (2h16m)  |  82% (2d 12h)',
+    'Opus 5.5 · high · ⤷ Sonnet › Haiku  |  ⎇ main ↑2 ~3  |  67%  |  98% (2h16m)  |  82% (2d 12h)',
   )
   expect(bandLines(sample).map(l => l.text)).toEqual([
-    'Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%',
+    'Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   67%',
     '98% (2h16m)  |  82% (2d 12h)',
   ])
   const before = build({ showWeather: true, window: 1_000_000, turns: [], cache: '🧊 cache idle', limits: [] })
-  expect(bandLines(before).map(l => l.text)).toEqual(['CT -%'])
+  expect(bandLines(before).map(l => l.text)).toEqual(['-%'])
   const quiet = build({ showWeather: false, tokens: 1, window: 2, turns: [], cache: '🧊 cache idle', limits: [] })
   expect(bandLines(quiet).map(l => l.text)).toEqual([])
   const fallingBack = build({ model: 'Opus 5.5', fallback: 'Sonnet', activeFallback: 'Sonnet 4.5', showWeather: false, tokens: 1, window: 2, turns: [], cache: 'c', limits: [] })
@@ -82,19 +87,19 @@ const usageValue = (tokens: number | undefined) => ({
 
 const stepUsage = (model: string) => ({ input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, model })
 
-test('line layout: one status line, countdown, effort and a fallback in use', { options: { layout: 'line', git: false, plan: false } }, async ($, on) => {
+// The compact line under the prompt, as drawn now.
+const compactHint = ($: Parameters<Parameters<typeof test>[2]>[0]) =>
+  $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '' } })
+
+test('compact layout: one line, countdown, effort and a fallback in use', { options: { layout: 'compact', git: false, plan: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
-  const shown: (string | undefined)[] = []
   const toasts: string[] = []
   let tokens: number | undefined
   let answeredBy = 'claude-opus-5-5'
   on('session.usage', () => usageValue(tokens))
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('settings.read', () => ({ value: { effortLevel: 'medium', fallbackModel: ['sonnet', 'haiku'] } }))
-  on('ui.status', (_$, e) => {
-    shown.push(e.text)
-    return { value: undefined }
-  })
+  on('ui.status', () => ({ value: undefined }))
   on('ui.toast', (_$, e) => {
     toasts.push(e.text)
     return { value: undefined }
@@ -112,7 +117,7 @@ test('line layout: one status line, countdown, effort and a fallback in use', { 
   }
 
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  expect(shown.at(-1)).toBe('Opus 5.5 · medium · ⤷ Sonnet › Haiku  |  CT -%  |  98% (2h16m)')
+  expect(await (await compactHint($)).find({ text: 'Opus 5.5 · medium · ⤷ Sonnet › Haiku  |  -%  |  98% (2h16m)' })).toBeDefined()
 
   tokens = 36_100
   await step()
@@ -120,11 +125,11 @@ test('line layout: one status line, countdown, effort and a fallback in use', { 
   tokens = 134_400
   await step()
   await $.turn.complete(turn)
-  expect(shown.at(-1)).toBe('Opus 5.5 · high · ⤷ Sonnet › Haiku  |  CT 67%  |  98% (2h16m)')
+  expect(await (await compactHint($)).find({ text: 'Opus 5.5 · high · ⤷ Sonnet › Haiku  |  67%  |  98% (2h16m)' })).toBeDefined()
 
   answeredBy = 'claude-sonnet-4-5'
   await step()
-  expect(shown.at(-1)).toContain('Opus 5.5 · high · ⤷ now Sonnet 4.5  |  ')
+  expect(await (await compactHint($)).find({ text: /^ ?Opus 5\.5 · high · ⤷ now Sonnet 4\.5 {2}\| {2}/ })).toBeDefined()
 
   await clock.advance(56 * MIN)
   expect(toasts.length).toBe(1)
@@ -166,7 +171,7 @@ for (const [surface, style] of STYLES) {
     expect(shown.at(-1)).toBe(undefined)
 
     const band = await $.ui.mount({ plugin: 'qhud', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
-    expect(await band.find({ text: /^ ?Opus 5\.5 · xhigh {3}⎇ main ✓ {3}CT 51% ?$/ })).toBeDefined()
+    expect(await band.find({ text: /^ ?Opus 5\.5 · xhigh {3}⎇ main ✓ {3}51% ?$/ })).toBeDefined()
     expect(await band.find({ text: /⎇ main ✓/ })).toBeDefined()
     expect(await band.find({ text: /^ ?98% \(2h33m\) ?$/ })).toBeDefined()
     expect(await band.find({ text: /cache/ })).toBeUndefined()
@@ -191,9 +196,8 @@ test('per-model weekly windows from the usage endpoint', () => {
   expect(planLimits('nope')).toEqual([])
 })
 
-test('line layout shows the Fable weekly window after 5h and 7d', { options: { layout: 'line', git: false, model: false, weather: false } }, async ($, on) => {
+test('compact layout shows the Fable weekly window after 5h and 7d', { options: { layout: 'compact', git: false, model: false, weather: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
-  const shown: (string | undefined)[] = []
   let fetched = 0
   on('session.usage', () => ({
     value: {
@@ -213,13 +217,10 @@ test('line layout shows the Fable weekly window after 5h and 7d', { options: { l
     const text = JSON.stringify({ seven_day_fable: { utilization: 100, resets_at: new Date((2 * 24 * 60 + 11 * 60) * MIN).toISOString() } })
     return { value: { status: 200, ok: true, headers: {}, text } }
   })
-  on('ui.status', (_$, e) => {
-    shown.push(e.text)
-    return { value: undefined }
-  })
+  on('ui.status', () => ({ value: undefined }))
   on('session.start', () => ({ cwd: '/' }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  expect(shown.at(-1)).toBe('0% (2d 11h)  |  99% (4h21m)  |  38% (2d 11h)')
+  expect(await (await compactHint($)).find({ text: '0% (2d 11h)  |  99% (4h21m)  |  38% (2d 11h)' })).toBeDefined()
   expect(fetched).toBe(1)
 })
 
@@ -237,9 +238,9 @@ for (const surface of ['terminal', 'desktop'] as const) {
     })
     await $.session.start({ cwd: '/', surface, isInteractive: true })
     const above = await $.ui.mount({ plugin: 'qhud', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
-    expect(await above.find({ text: /CT / })).toBeUndefined()
+    expect(await above.find({ text: /Opus|51%/ })).toBeUndefined()
     const hint = await $.ui.mount({ plugin: 'qhud', surface, component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
-    expect(await hint.find({ text: /^ ?Opus 5\.5 {3}CT 51% ?$/ })).toBeDefined()
+    expect(await hint.find({ text: /^ ?Opus 5\.5 {3}51% ?$/ })).toBeDefined()
     expect(await hint.find({ text: '? for shortcuts' })).toBeDefined()
   })
 }
@@ -293,13 +294,13 @@ test('compact layout: one line where bottom draws, nothing above the prompt or i
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   expect(shown.every(s => s === undefined)).toBe(true)
   const above = await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
-  expect(await above.find({ text: /CT / })).toBeUndefined()
+  expect(await above.find({ text: /Opus|51%/ })).toBeUndefined()
   const hint = await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
-  expect(await hint.find({ text: 'Opus 5.5  |  CT 51%  |  98% (2h33m)' })).toBeDefined()
+  expect(await hint.find({ text: 'Opus 5.5  |  51%  |  98% (2h33m)' })).toBeDefined()
   expect(await hint.find({ text: '? for shortcuts' })).toBeDefined()
 })
 
-test('/qhud-usage shows what the endpoint answered', { options: { layout: 'line', git: false } }, async ($, on) => {
+test('/qhud-usage shows what the endpoint answered', { options: { layout: 'compact', git: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   on('session.usage', () => usageValue(1))
   on('session.model', () => ({ value: 'claude-fable-5-1' }))
@@ -330,7 +331,7 @@ test('model-scoped weekly windows from the limits list', () => {
 
 test('band: the Fable window leads the limits line', () => {
   const v = build({ showWeather: true, tokens: 1, window: 100, turns: [], cache: 'c', limits: [{ name: '', left: 0, reset: '2d 10h' }, { name: '', left: 98 }] })
-  expect(bandLines(v).map(l => l.text)).toEqual(['CT 1%', '0% (2d 10h)  |  98%'])
+  expect(bandLines(v).map(l => l.text)).toEqual(['1%', '0% (2d 10h)  |  98%'])
 })
 
 test('effort from settings before the first response', () => {
@@ -341,7 +342,7 @@ test('effort from settings before the first response', () => {
   expect(settingsEffort({}, 'claude-fable-5-1')).toBe(undefined)
 })
 
-test('/qhud-usage answers with the usage endpoint', { options: { layout: 'line', git: false } }, async ($, on) => {
+test('/qhud-usage answers with the usage endpoint', { options: { layout: 'compact', git: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   on('session.usage', () => usageValue(1))
   on('session.model', () => ({ value: 'claude-fable-5-1' }))

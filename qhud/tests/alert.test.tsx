@@ -65,7 +65,7 @@ test('one alert line carries at most four windows', () => {
   expect(toastText(['a', 'b', 'c', 'd', 'e', 'f'].map(kind => ({ kind, percentUsed: 99 })), 0)).toBe('Usage limit nearly reached: a 99% used, 1% left; b 99% used, 1% left; c 99% used, 1% left; d 99% used, 1% left')
 })
 
-test('the alert reaches the main thread once, never a subagent', { options: { layout: 'line', git: false, model: false, plan: false } }, async ($, on) => {
+test('the alert reaches the main thread once, never a subagent', { options: { layout: 'compact', git: false, model: false, plan: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   const toasts: string[] = []
   on('session.usage', () => ({ value: { startedAt: 0, rateLimits: [{ kind: 'five_hour', percentUsed: 96, resetsAt: at(62) }], context: { tokens: 1, window: 200_000 } } }))
@@ -93,7 +93,7 @@ test('the alert reaches the main thread once, never a subagent', { options: { la
   expect(toasts.length).toBe(2)
 })
 
-test('a prompt before any tool call carries the alert instead', { options: { layout: 'line', git: false, model: false, plan: false } }, async ($, on) => {
+test('a prompt before any tool call carries the alert instead', { options: { layout: 'compact', git: false, model: false, plan: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   on('session.usage', () => ({ value: { startedAt: 0, rateLimits: [{ kind: 'seven_day', percentUsed: 98, resetsAt: at(62) }], context: { tokens: 1, window: 200_000 } } }))
   on('settings.read', () => ({ value: {} }))
@@ -110,7 +110,7 @@ test('a prompt before any tool call carries the alert instead', { options: { lay
   expect(main.context).toBeUndefined()
 })
 
-test('the options set both thresholds; alertLeftWeekly out of range means 2', { options: { layout: 'line', git: false, model: false, plan: false, alertLeft: 3, alertLeftWeekly: 99 } }, async ($, on) => {
+test('the options set both thresholds; alertLeftWeekly out of range means 2', { options: { layout: 'compact', git: false, model: false, plan: false, alertLeft: 3, alertLeftWeekly: 99 } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   const toasts: string[] = []
   const rateLimits = [
@@ -131,7 +131,7 @@ test('the options set both thresholds; alertLeftWeekly out of range means 2', { 
   expect(toasts).toEqual(['Usage limit nearly reached: 7d Fable 98% used, 2% left (resets in 1h2m)'])
 })
 
-test('alert off: no toast, no context', { options: { layout: 'line', git: false, model: false, plan: false, alert: false } }, async ($, on) => {
+test('alert off: no toast, no context', { options: { layout: 'compact', git: false, model: false, plan: false, alert: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })
   const toasts: string[] = []
   on('session.usage', () => ({ value: { startedAt: 0, rateLimits: [{ kind: 'five_hour', percentUsed: 99, resetsAt: at(62) }], context: { tokens: 1, window: 200_000 } } }))

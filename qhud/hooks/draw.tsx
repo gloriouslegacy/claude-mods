@@ -9,10 +9,7 @@ const pieces = ({ Text }: Ui, v: TcwView, bg?: string) => ({
   model: modelBlock(v) ? <Text bold backgroundColor={bg}>{modelBlock(v)}</Text> : null,
   git: v.git ? <Text backgroundColor={bg} color={v.git.endsWith('✓') ? 'green' : 'yellow'}>{v.git}</Text> : null,
   meter: v.weather ? (
-    <Text backgroundColor={bg}>
-      <Text backgroundColor={bg}>CT </Text>
-      <Text backgroundColor={bg} color={leftColor(100 - (v.weather.pct ?? 0))} bold>{pctText(v.weather.pct)}</Text>
-    </Text>
+    <Text backgroundColor={bg} color={leftColor(100 - (v.weather.pct ?? 0))} bold>{pctText(v.weather.pct)}</Text>
   ) : null,
   limits: v.limits.map(l => (
     <Text backgroundColor={bg}>
