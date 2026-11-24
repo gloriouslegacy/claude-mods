@@ -34,7 +34,7 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 ```
 
-`qhud.layout`을 `line`으로 바꾸면 같은 내용을 프롬프트 아래 상태줄 한 줄로 보여줍니다. 이때는 Claude Code가 앞에 `⚠ qhud:`를 붙이기 때문에 이름을 짧게 했습니다.
+`qhud.layout`을 `line`으로 바꾸면 같은 내용을 프롬프트 아래 상태줄 한 줄로 보여줍니다. 이때는 Claude Code가 앞에 `⚠ qhud:`를 붙이고 한 가지 색으로 그리기 때문에 이름을 짧게 했습니다. `compact`로 바꾸면 같은 한 줄을 프롬프트 아래에 `bottom`과 같은 색으로, 접두 없이 보여줍니다.
 
 | 항목 | 뜻 |
 |---|---|
@@ -196,7 +196,7 @@ blast-radius, replay-theater, change-tutor(v2.0.0에서 제거)는 이 묶음에
 
 | 설정(`/config`) | 값 | 기본값 |
 |---|---|---|
-| `qhud.layout` | `bottom`(프롬프트 아래 2줄), `band`(프롬프트 위 2줄), `line`(프롬프트 아래 한 줄) | `bottom` |
+| `qhud.layout` | `bottom`(프롬프트 아래 2줄), `band`(프롬프트 위 2줄), `line`(프롬프트 아래 한 줄, 단색, `⚠ qhud:` 접두), `compact`(프롬프트 아래 색 있는 한 줄) | `bottom` |
 | `qhud.style` | `plain`, `chip`(줄마다 음영 배경), `box`(둥근 테두리, 2줄 더 차지). band일 때만 적용 | `plain` |
 | `qhud.model` | `true`, `false` — 모델·추론 강도·폴백 체인 표시 여부 | `true` |
 | `qhud.weather` | `true`, `false` — `CT 67%`(컨텍스트 사용률) 표시 여부 | `true` |

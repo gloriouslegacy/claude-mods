@@ -2,6 +2,12 @@
 
 Newest first. Each release is one `## vX.Y.Z (date)` section; the release workflow publishes that section as the release notes.
 
+## v2.14.0 (2026-11-24)
+
+- Added: `qhud.layout` value `compact`. It shows the same single line as `line`, but under the prompt where `bottom` draws, with the same colours as `band`/`bottom` and no `⚠ qhud:` prefix. `line` stays as it was: Claude Code draws it as its own status line, so it is always one colour with the `⚠ qhud:` prefix.
+- No existing setting keys changed or removed; the default layout is still `bottom`.
+- Plugins: qhud 0.22.0, pinboard 0.8.0, agent-flow 0.12.0, qcompact 0.3.0.
+
 ## v2.13.0 (2026-11-18)
 
 - Fixed: auto-resume is no longer cancelled by prompts Claude Code injects by itself. Background task completion notices (and scheduled triggers or other plugins) arrive as prompts, and qhud treated them as if you had typed something, so the resume was silently dropped. Now only a person's prompt (typed in the composer, Remote Control, or the SDK) cancels it.

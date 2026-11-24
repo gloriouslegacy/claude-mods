@@ -4,7 +4,8 @@ import { cachePart } from '../hooks/cache'
 import { gitPart, parseGit } from '../hooks/git'
 import { chainName, modelName, settingsEffort } from '../hooks/model'
 import { planLimits } from '../hooks/plan'
-import { bandLines, build, oneLine } from '../hooks/view'
+import { drawLine, drawLines } from '../hooks/draw'
+import { bandLines, build, oneLine, withResume } from '../hooks/view'
 import { delta, fmt, forecast, limitText, limitViews, meter, span, sparkline } from '../hooks/weather'
 
 const MIN = 60_000
@@ -242,6 +243,61 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(await hint.find({ text: '? for shortcuts' })).toBeDefined()
   })
 }
+
+// A drawn tree's text, and each all-text Text node's text with its colour.
+type Drawn = { type?: string; props?: Record<string, unknown>; children?: unknown[] }
+const flat = (n: unknown): string => (typeof n === 'string' ? n : ((n as Drawn).children ?? []).map(flat).join(''))
+const leaves = (n: unknown, out = new Map<string, unknown>()): Map<string, unknown> => {
+  const { type, props, children = [] } = n as Drawn
+  if (type === 'Text' && children.every(c => typeof c === 'string')) out.set(flat(n), { color: props?.color, bold: props?.bold, dimColor: props?.dimColor })
+  else children.forEach(c => typeof c === 'object' && c !== null && leaves(c, out))
+  return out
+}
+
+test('compact line: oneLine text, each piece coloured as bottom (v2.14.0 F1)', async ($, on) => {
+  const v = withResume(sample, 0)
+  let compact = true
+  on('ui.render', ($$, e) => (compact ? drawLine($$.ui.resolve(e), v) : drawLines($$.ui.resolve(e), v, 'plain')))
+  const draw = async () => (await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '' } })).drawn()
+  const one = await draw()
+  compact = false
+  const bottom = leaves(await draw())
+  expect(flat(one)).toBe(oneLine(v))
+  const pieces = [...leaves(one)]
+  expect(pieces.length).toBeGreaterThan(5)
+  for (const [text, colour] of pieces) expect([text, bottom.get(text)]).toEqual([text, colour])
+})
+
+test('compact: no limits drops the resume mark like oneLine', async ($, on) => {
+  const v = withResume({ ...sample, limits: [] }, 0)
+  on('ui.render', ($$, e) => drawLine($$.ui.resolve(e), v))
+  const one = await (await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '' } })).drawn()
+  expect(flat(one)).toBe(oneLine(v))
+})
+
+test('compact layout: one line where bottom draws, nothing above the prompt or in the status', { options: { layout: 'compact', git: false, plan: false } }, async ($, on) => {
+  mock.clock(on, { now: 0 })
+  const shown: (string | undefined)[] = []
+  on('session.usage', () => usageValue(102_000))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('settings.read', () => ({ value: {} }))
+  on('ui.status', (_$, e) => {
+    shown.push(e.text)
+    return { value: undefined }
+  })
+  on('session.start', () => ({ cwd: '/' }))
+  on('ui.render', ($$, e) => {
+    const { Text } = $$.ui.resolve(e)
+    return <Text>? for shortcuts</Text>
+  })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  expect(shown.every(s => s === undefined)).toBe(true)
+  const above = await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+  expect(await above.find({ text: /CT / })).toBeUndefined()
+  const hint = await $.ui.mount({ plugin: 'qhud', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' } })
+  expect(await hint.find({ text: 'Opus 5.5  |  CT 51%  |  98% (2h33m)' })).toBeDefined()
+  expect(await hint.find({ text: '? for shortcuts' })).toBeDefined()
+})
 
 test('/qhud-usage shows what the endpoint answered', { options: { layout: 'line', git: false } }, async ($, on) => {
   mock.clock(on, { now: 0 })

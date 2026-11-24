@@ -1,10 +1,11 @@
-// qhud: the session at a glance, in one of two layouts (option `layout`):
+// qhud: the session at a glance, in one of four layouts (option `layout`):
 //   band — two to three coloured lines above the prompt, no plugin-name prefix:
 //     Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 //     0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 // (the prompt-cache clock is no longer drawn; it still warns once before the cache expires)
 //   bottom (default) — the same two lines under the prompt, above the engine's hint line.
 //   line — the same in one status line under the prompt (the engine prefixes "⚠ qhud:").
+//   compact — line's text, coloured as bottom, in one line where bottom draws (no prefix).
 // /qhud-usage reads the account usage endpoint now and shows what it answered (for the per-model windows).
 // Refreshed every 15 s and whenever a main-thread response arrives (turn.step); a chart reading is
 // taken at session start and after each main-thread turn. No model calls, so no tokens.
@@ -322,11 +323,11 @@ export const register: Register = (on, options) => {
     return stackLines($.ui.resolve(e), v, o.style, await next(e))
   })
 
-  // bottom: our lines under the prompt, the engine's hint line kept below them.
+  // bottom and compact: our lines (compact: one line) under the prompt, the engine's hint line kept below them.
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
-    if (o.layout !== 'bottom') return next(e)
+    if (o.layout !== 'bottom' && o.layout !== 'compact') return next(e)
     const v = await read($, view)
     if (!v) return next(e)
-    return stackLines($.ui.resolve(e), v, o.style, await next(e))
+    return stackLines($.ui.resolve(e), v, o.layout === 'compact' ? 'compact' : o.style, await next(e))
   })
 }

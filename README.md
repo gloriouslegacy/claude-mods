@@ -35,7 +35,7 @@ Opus 5.5 · high · ⤷ Sonnet › Haiku   ⎇ main ↑2 ~3   CT 67%
 0% (2d 11h)  |  98% (2h16m)  |  82% (2d 12h)
 ```
 
-With `qhud.layout` = `band` the same two lines sit above the prompt. With `qhud.layout` = `line` the same goes in one status line under the prompt (Claude Code prefixes it with `⚠ qhud:`, which is why the name is short).
+With `qhud.layout` = `band` the same two lines sit above the prompt. With `qhud.layout` = `line` the same goes in one status line under the prompt (Claude Code prefixes it with `⚠ qhud:` and draws it in one colour, which is why the name is short). With `qhud.layout` = `compact` you get the same single line under the prompt, coloured like `bottom` and without the prefix.
 
 | Part | Meaning |
 |---|---|
@@ -197,7 +197,7 @@ Nothing to do: the lines appear when a session starts. To show the fallback chai
 
 | Setting (`/config`) | Values | Default |
 |---|---|---|
-| `qhud.layout` | `bottom` (2 lines under the prompt), `band` (2 lines above it), `line` (one status line under it) | `bottom` |
+| `qhud.layout` | `bottom` (2 lines under the prompt), `band` (2 lines above it), `line` (one status line under it, one colour, `⚠ qhud:` prefix), `compact` (one coloured line under it) | `bottom` |
 | `qhud.style` | `plain`, `chip` (each line on a shaded background), `box` (one rounded frame; two rows taller) — band only | `plain` |
 | `qhud.model` | `true`, `false` — show the model, effort and fallback chain | `true` |
 | `qhud.weather` | `true`, `false` — show `CT 67%` (context fill) | `true` |
